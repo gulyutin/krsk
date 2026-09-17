@@ -1,19 +1,12 @@
 import './style.css';
-import {
-  Color,
-  DirectionalLight,
-  Fog,
-  HemisphereLight,
-  PerspectiveCamera,
-  Scene,
-  WebGLRenderer,
-} from 'three';
+import { Color, Fog, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
 import { PALETTE } from './palette';
 import { Avatar } from './player/avatar';
 import { CameraRig } from './player/camera';
 import { PlayerController } from './player/controller';
 import { Input } from './player/input';
 import { Hud } from './ui/hud';
+import { addLighting } from './world/lighting';
 import { buildWorld } from './world/world';
 
 const MAX_DT = 0.05;
@@ -29,11 +22,7 @@ document.getElementById('app')!.appendChild(renderer.domElement);
 const scene = new Scene();
 scene.background = new Color(PALETTE.sky);
 scene.fog = new Fog(PALETTE.sky, 90, 340);
-// Soft fill from all sides plus a high side sun, so shaded faces never go black.
-scene.add(new HemisphereLight(PALETTE.white, PALETTE.sand, 2.2));
-const sun = new DirectionalLight(PALETTE.white, 1.6);
-sun.position.set(70, 150, 30);
-scene.add(sun);
+addLighting(scene);
 
 const camera = new PerspectiveCamera(60, 1, 0.1, 800);
 

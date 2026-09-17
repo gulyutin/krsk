@@ -4,3 +4,9 @@ shots
 .DS_Store
 *.log
 .claude/settings.local.json
+# Reference photos and drawings stay local (size, third-party copyright); notes.md is committed
+refs/**/*.jpg
+refs/**/*.jpeg
+refs/**/*.png
+refs/**/*.webp
+refs/**/*.heic

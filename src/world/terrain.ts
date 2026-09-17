@@ -82,7 +82,8 @@ export function buildTerrain(): Terrain {
 
   // Hill for the Paraskeva Pyatnitsa chapel: stepped terraces of 0.5,
   // each walkable without jumping.
-  const hill = { x: -70, z: -110, base: 50, levels: 10, rise: 0.5, shrink: 2 };
+  // Top is 24×24 at y = 5 — room for the chapel platform (see landmarks.json).
+  const hill = { x: -70, z: -110, base: 60, levels: 10, rise: 0.5, shrink: 2 };
   for (let i = 0; i < hill.levels; i++) {
     const half = hill.base / 2 - i * hill.shrink;
     solidBox(

@@ -2,7 +2,7 @@
 
 A browser 3D game in a Roblox-like blocky style: a little figure walks around a stylized Krasnoyarsk and discovers its landmarks. Made for a first-grader — nothing to lose, no reading required. Works on phones and desktops.
 
-**Play:** https://gulyutin.github.io/krsk/
+**Play:** https://gulyutin.github.io/krsk/ · **Landmark viewer:** https://gulyutin.github.io/krsk/viewer.html?id=chapel
 
 ## Controls
 
@@ -18,6 +18,7 @@ A browser 3D game in a Roblox-like blocky style: a little figure walks around a 
 npm install
 npm run dev      # http://localhost:5180, add ?debug for fps / draw calls
 npm test         # Vitest
+npm run shot -- chapel   # screenshots of a landmark into shots/ (also: world, avatar)
 npm run build    # type-check + build into dist/
 ```
 

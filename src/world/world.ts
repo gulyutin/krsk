@@ -1,5 +1,6 @@
 import { Group } from 'three';
 import { type Box, type Vec3, box } from './colliders';
+import { placeLandmarks } from './landmarks/index';
 import { buildRiver } from './river';
 import { buildTerrain, solidBox } from './terrain';
 
@@ -21,6 +22,7 @@ export function buildWorld(): World {
   const river = buildRiver();
   root.add(river.mesh);
 
+  placeLandmarks(root, colliders);
   addTestBlocks(root, colliders);
 
   return {
