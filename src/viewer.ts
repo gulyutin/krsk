@@ -22,7 +22,8 @@ interface Angle {
 
 const LANDMARK_VIEWS: Record<string, Angle> = {
   front: { yaw: 0, pitch: 0.06, main: true },
-  side: { yaw: Math.PI / 2, pitch: 0.06, main: true },
+  // From −X: attached buildings (like the administration next to the tower) extend to +X
+  side: { yaw: -Math.PI / 2, pitch: 0.06, main: true },
   back: { yaw: Math.PI, pitch: 0.06, main: true },
   top: { yaw: 0, pitch: Math.PI / 2 - 0.001, main: false },
   iso: { yaw: Math.PI / 4, pitch: 0.45, main: false },

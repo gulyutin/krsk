@@ -2,7 +2,21 @@
   {
     "id": "chapel",
     "name": "Часовня Параскевы Пятницы",
-    "position": [-70, 5, -110],
+    "position": [
+      -70,
+      5,
+      -110
+    ],
+    "rotationY": 0
+  },
+  {
+    "id": "clocktower",
+    "name": "Башня с часами",
+    "position": [
+      35,
+      0,
+      -100
+    ],
     "rotationY": 0
   }
 ]

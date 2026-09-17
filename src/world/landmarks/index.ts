@@ -2,10 +2,12 @@ import { Box3, type Group, Mesh, type Object3D } from 'three';
 import type { Box } from '../colliders';
 import placements from '../landmarks.json';
 import { build as chapel } from './chapel';
+import { build as clocktower } from './clocktower';
 
 /** Every landmark by id. Add new ones here. */
 export const LANDMARKS: Record<string, () => Group> = {
   chapel,
+  clocktower,
 };
 
 export interface LandmarkPlacement {
@@ -18,17 +20,24 @@ export interface LandmarkPlacement {
 export const PLACEMENTS = placements as LandmarkPlacement[];
 
 /**
- * Axis-aligned box colliders for every mesh marked solid inside `object`,
+ * Axis-aligned box colliders for every mesh marked solid inside `object` and every colliderBox(),
  * in world space. Call after the object is positioned.
  */
 export function collidersOf(object: Object3D): Box[] {
   object.updateMatrixWorld(true);
   const out: Box[] = [];
   const b = new Box3();
+  const push = () => out.push({ minX: b.min.x, minY: b.min.y, minZ: b.min.z, maxX: b.max.x, maxY: b.max.y, maxZ: b.max.z });
   object.traverse((o) => {
-    if (!(o instanceof Mesh) || !o.userData.solid) return;
-    b.setFromObject(o, true);
-    out.push({ minX: b.min.x, minY: b.min.y, minZ: b.min.z, maxX: b.max.x, maxY: b.max.y, maxZ: b.max.z });
+    if (o instanceof Mesh && o.userData.solid) {
+      b.setFromObject(o, true);
+      push();
+    }
+    // Mesh-less colliders from colliderBox(), in the object's local space
+    for (const local of (o.userData.colliders ?? []) as Box3[]) {
+      b.copy(local).applyMatrix4(o.matrixWorld);
+      push();
+    }
   });
   return out;
 }

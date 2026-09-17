@@ -28,3 +28,18 @@ describe.each(Object.keys(LANDMARKS))('landmark %s', (id) => {
     expect(PLACEMENTS.some((p) => p.id === id)).toBe(true);
   });
 });
+
+describe('collidersOf', () => {
+  it('moves mesh-less colliderBox() boxes into world space', async () => {
+    const { Group } = await import('three');
+    const { colliderBox } = await import('./kit');
+    const g = new Group();
+    colliderBox(g, [2, 2, 2], [0, 1, 0]);
+    g.position.set(10, 0, -5);
+    const [b] = collidersOf(g);
+    expect(b.minX).toBeCloseTo(9);
+    expect(b.maxX).toBeCloseTo(11);
+    expect(b.minZ).toBeCloseTo(-6);
+    expect(b.maxY).toBeCloseTo(2);
+  });
+});

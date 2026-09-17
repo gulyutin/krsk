@@ -1,6 +1,7 @@
 // Shared building blocks for landmarks. Everything is a primitive with a palette color.
 
 import {
+  Box3,
   BoxGeometry,
   type BufferGeometry,
   ConeGeometry,
@@ -10,6 +11,7 @@ import {
   Mesh,
   Object3D,
   SphereGeometry,
+  Vector3,
 } from 'three';
 import { type ColorName, lambert } from '../../palette';
 
@@ -22,11 +24,30 @@ export const unitBox = new BoxGeometry(1, 1, 1);
 /** Half disc of radius 1 and depth 1 in the XY plane, curved side up — tops of arches. */
 export const unitArch = new CylinderGeometry(1, 1, 1, 12, 1, false, Math.PI / 2, Math.PI).rotateX(Math.PI / 2);
 export const unitSphere = new SphereGeometry(1, 10, 8);
+/** Disc of radius 1 and thickness 1 facing +Z — clock dials, round plaques. */
+export const unitDisc = new CylinderGeometry(1, 1, 1, 32).rotateX(Math.PI / 2);
+/** Square pyramid with base half-width 1 and height 1, faces aligned with the axes. */
+export const unitPyramid = new ConeGeometry(Math.SQRT2, 1, 4).rotateY(Math.PI / 4);
+export const unitCone = new ConeGeometry(1, 1, 8);
 
 /** Mark a mesh as solid: the world turns it into a box collider. */
 export function solid<T extends Object3D>(o: T): T {
   o.userData.solid = true;
   return o;
+}
+
+/**
+ * Collider without any mesh: an axis-aligned box in the parent's local space,
+ * stored as data. Use it where a rotated part would get an oversized collider.
+ */
+export function colliderBox(parent: Object3D, size: [number, number, number], pos: [number, number, number]): void {
+  const list: Box3[] = (parent.userData.colliders ??= []);
+  list.push(
+    new Box3(
+      new Vector3(pos[0] - size[0] / 2, pos[1] - size[1] / 2, pos[2] - size[2] / 2),
+      new Vector3(pos[0] + size[0] / 2, pos[1] + size[1] / 2, pos[2] + size[2] / 2),
+    ),
+  );
 }
 
 /** Any unit-sized geometry, scaled, placed and rotated. */

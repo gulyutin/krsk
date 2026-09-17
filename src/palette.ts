@@ -46,6 +46,20 @@ export const PALETTE = {
   iron: 0x26292d,
   lampGlobe: 0xf7f3e0,
 
+  // Clock tower and City Administration
+  towerStone: 0x8d8578,
+  towerStoneDark: 0x6b645a,
+  towerLight: 0xd9d5cc,
+  dial: 0x1c2230,
+  pyramidRoof: 0x5e5a52,
+  officeWhite: 0xeef0f0,
+  officeGlass: 0x6f8fa8,
+  officeGlassDark: 0x3f5566,
+  signRed: 0xd8322a,
+  graniteRed: 0x9a5a4a,
+  squarePaving: 0xb0a39a,
+  firGreen: 0x2f5d3a,
+
   // Landmark viewer
   viewerBg: 0xdfe6ee,
   viewerGround: 0xc3cad3,
