@@ -95,7 +95,9 @@ function groundAt(x: number, z: number, top: number): number {
   return hits.length ? Math.max(...hits) : 0;
 }
 
-const boundsOf = (o: Object3D) => new Box3().setFromObject(o, true);
+function boundsOf(o: Object3D): Box3 {
+  return new Box3().setFromObject(o, true);
+}
 
 /** Places `cam` to look at `box` from the given angle, fitting the whole box into the frame. */
 function aim(cam: PerspectiveCamera, box: Box3, yaw: number, pitch: number): void {
