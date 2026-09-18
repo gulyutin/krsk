@@ -81,6 +81,26 @@ export const PALETTE = {
   concreteDark: 0x98907f,
   asphalt: 0x56595d,
 
+  // City: facades of old houses and Soviet blocks, roofs, glass
+  facadeOchre: 0xd8a45c,
+  facadePink: 0xd79a8e,
+  facadeCream: 0xe7dbbf,
+  facadeMint: 0xa8ccb3,
+  facadeBrick: 0xa6553f,
+  facadeBlue: 0x9fb5cc,
+  panelWhite: 0xd8d7d0,
+  panelGrey: 0xb3b4af,
+  windowGlass: 0x34465a,
+  roofGrey: 0x6a6e72,
+  roofRed: 0x8b3d2c,
+  roofTin: 0x7d8c86,
+
+  // Trees and street furniture
+  birchBark: 0xe6e3da,
+  birchLeaves: 0x8dbf5b,
+  poplarLeaves: 0x5b9442,
+  benchWood: 0x8a5a36,
+
   // Landmark viewer
   viewerBg: 0xdfe6ee,
   viewerGround: 0xc3cad3,
@@ -100,6 +120,8 @@ interface Surface {
   pattern?: Pattern;
   /** World units per texture repeat. */
   tile?: number;
+  /** Second colour of the pattern (glass for 'windows'). */
+  accent?: ColorName;
 }
 
 const MATTE: Surface = { roughness: 0.9 };
@@ -138,6 +160,19 @@ const SURFACES: Partial<Record<ColorName, Surface>> = {
   visor: { roughness: 0.05, metalness: 0.8 },
   lampGlobe: { roughness: 0.2 },
   suitWhite: { roughness: 0.7 },
+  facadeOchre: { roughness: 0.85, pattern: 'windows', accent: 'windowGlass' },
+  facadePink: { roughness: 0.85, pattern: 'windows', accent: 'windowGlass' },
+  facadeCream: { roughness: 0.85, pattern: 'windows', accent: 'windowGlass' },
+  facadeMint: { roughness: 0.85, pattern: 'windows', accent: 'windowGlass' },
+  facadeBrick: { roughness: 0.9, pattern: 'windows', accent: 'windowGlass' },
+  facadeBlue: { roughness: 0.85, pattern: 'windows', accent: 'windowGlass' },
+  panelWhite: { roughness: 0.8, pattern: 'windows', accent: 'windowGlass' },
+  panelGrey: { roughness: 0.8, pattern: 'windows', accent: 'windowGlass' },
+  roofGrey: { roughness: 0.8, pattern: 'noise', tile: 3 },
+  roofRed: { roughness: 0.6, metalness: 0.2, pattern: 'seams', tile: 1.5 },
+  roofTin: { roughness: 0.5, metalness: 0.3, pattern: 'seams', tile: 1.5 },
+  birchLeaves: { roughness: 0.9, pattern: 'noise', tile: 2 },
+  poplarLeaves: { roughness: 0.9, pattern: 'noise', tile: 2 },
   concrete: { roughness: 0.9, pattern: 'plaster', tile: 3 },
   concreteDark: { roughness: 0.9, pattern: 'plaster', tile: 3 },
   asphalt: { roughness: 0.95, pattern: 'noise', tile: 2 },
@@ -150,7 +185,8 @@ export function material(name: ColorName): MeshStandardMaterial {
   let m = materials.get(name);
   if (!m) {
     const surface = SURFACES[name] ?? MATTE;
-    const map = surface.pattern ? patternTexture(surface.pattern, PALETTE[name]) : null;
+    const accent = surface.accent ? PALETTE[surface.accent] : undefined;
+    const map = surface.pattern ? patternTexture(surface.pattern, PALETTE[name], accent) : null;
     m = new MeshStandardMaterial({
       // A textured material takes its colour from the texture
       color: map ? 0xffffff : PALETTE[name],

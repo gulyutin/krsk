@@ -67,3 +67,53 @@ export function rayBox(o: Vec3, d: Vec3, b: Box, margin = 0): number {
   }
   return inside ? Infinity : tmin;
 }
+
+/**
+ * Uniform grid over the XZ plane for finding the boxes near a point quickly.
+ * Static: build it once for colliders that do not move.
+ */
+export class SpatialIndex {
+  private readonly cells = new Map<number, Box[]>();
+
+  constructor(
+    boxes: readonly Box[],
+    private readonly cell = 16,
+  ) {
+    for (const b of boxes) {
+      for (let ix = this.ix(b.minX); ix <= this.ix(b.maxX); ix++) {
+        for (let iz = this.ix(b.minZ); iz <= this.ix(b.maxZ); iz++) {
+          const k = this.key(ix, iz);
+          let list = this.cells.get(k);
+          if (!list) this.cells.set(k, (list = []));
+          list.push(b);
+        }
+      }
+    }
+  }
+
+  /** Boxes overlapping the rectangle, each once, written into `out` (cleared first). */
+  query(minX: number, minZ: number, maxX: number, maxZ: number, out: Box[]): Box[] {
+    out.length = 0;
+    const seen = new Set<Box>();
+    for (let ix = this.ix(minX); ix <= this.ix(maxX); ix++) {
+      for (let iz = this.ix(minZ); iz <= this.ix(maxZ); iz++) {
+        const list = this.cells.get(this.key(ix, iz));
+        if (!list) continue;
+        for (const b of list) {
+          if (seen.has(b)) continue;
+          seen.add(b);
+          if (b.maxX >= minX && b.minX <= maxX && b.maxZ >= minZ && b.minZ <= maxZ) out.push(b);
+        }
+      }
+    }
+    return out;
+  }
+
+  private ix(v: number): number {
+    return Math.floor(v / this.cell);
+  }
+
+  private key(ix: number, iz: number): number {
+    return (ix + 32768) * 65536 + (iz + 32768);
+  }
+}

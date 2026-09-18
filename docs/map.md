@@ -66,3 +66,22 @@ of the Communal bridge (56.00709 N, 92.87207 E) along the river (bearing ≈ 70�
 
 The Ferris wheel is in the Central Park (the spec's "island with the Ferris wheel" was a mistake);
 there is another one in Roev Ruchey, far south-west on the right bank, not planned for now.
+
+## City
+
+Streets, houses, trees, lamps and benches come from `src/world/city.ts` (fixed seed, same city on every load).
+
+| Streets along the river (from the embankment inland) | Game z |
+|---|---|
+| Dubrovinskogo (embankment street, the museum's front) | −24.5 |
+| Karla Marksa (in front of the administration square) | −80 |
+| prospekt Mira | −150 |
+| Lenina | −205 |
+
+Cross streets (west to east), game x: Dekabristov −470, Gorkogo −395, Diktatury Proletariata −270, Kirova −205,
+Perensona −70, the bridgehead 10, Veinbauma 96, Surikova 262, Parizhskoy Kommuny 330, 9 Yanvarya 420.
+Real order from OpenStreetMap; the real grid is slightly skewed to the river, the game grid is square to it.
+
+Old 2–4 storey houses between the embankment and Karla Marksa, Soviet 5- and 9-storey blocks further in,
+panel blocks on the right bank, forest on Karaulnaya hill and the southern slopes, trees along every street.
+Sites of future landmarks are kept free of houses in `RESERVED` in `city.ts` — update it together with this file.

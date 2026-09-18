@@ -12,12 +12,16 @@ export interface Quality {
   shadowMapSize: number;
   /** Ripple normal map on the river. */
   waterDetail: boolean;
+  /** Terrain grid step; larger is cheaper. */
+  terrainCell: number;
+  /** Trees cast shadows (thousands of them: expensive). */
+  treeShadows: boolean;
 }
 
 const LEVELS: Record<QualityLevel, Quality> = {
-  low: { level: 'low', pixelRatio: 1, antialias: false, shadowMapSize: 0, waterDetail: false },
-  medium: { level: 'medium', pixelRatio: 1.5, antialias: false, shadowMapSize: 1024, waterDetail: true },
-  high: { level: 'high', pixelRatio: 2, antialias: true, shadowMapSize: 2048, waterDetail: true },
+  low: { level: 'low', pixelRatio: 1, antialias: false, shadowMapSize: 0, waterDetail: false, terrainCell: 12, treeShadows: false },
+  medium: { level: 'medium', pixelRatio: 1.5, antialias: false, shadowMapSize: 1024, waterDetail: true, terrainCell: 8, treeShadows: false },
+  high: { level: 'high', pixelRatio: 2, antialias: true, shadowMapSize: 2048, waterDetail: true, terrainCell: 6, treeShadows: true },
 };
 
 export function detectQuality(): Quality {

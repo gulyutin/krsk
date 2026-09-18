@@ -1,4 +1,4 @@
-import { type Box, type Vec3, circleOverlapsBox, clamp } from '../world/colliders';
+import { type Box, SpatialIndex, type Vec3, circleOverlapsBox, clamp } from '../world/colliders';
 
 // The player is a vertical cylinder (a simplified capsule): it stands firmly
 // on block edges instead of sliding off. Position is the center of the feet.
@@ -85,16 +85,20 @@ export class PlayerController {
 
   /** Standing on the terrain (not on a box) at the end of the last update. */
   private onTerrain = false;
+  /** Colliders near the player this update, from the spatial index. */
+  private nearby: Box[] = [];
+  private readonly index: SpatialIndex;
 
   /** groundAt: terrain height at (x, z); without it the ground is boxes only. */
   constructor(
-    private readonly colliders: readonly Box[],
+    readonly colliders: readonly Box[],
     spawn: Vec3,
     readonly cfg: ControllerConfig = DEFAULT_CONFIG,
     private readonly groundAt?: (x: number, z: number) => number,
   ) {
     this.pos = { ...spawn };
     this.safe = { ...spawn };
+    this.index = new SpatialIndex(colliders);
   }
 
   /**
@@ -133,6 +137,9 @@ export class PlayerController {
     const dist = Math.hypot(vel.x, vel.y, vel.z) * dt;
     const steps = Math.max(1, Math.ceil(dist / (cfg.radius * 0.5)));
     const h = dt / steps;
+    // Only the boxes within reach of this update's movement take part
+    const reach = cfg.radius + dist + 1;
+    this.index.query(this.pos.x - reach, this.pos.z - reach, this.pos.x + reach, this.pos.z + reach, this.nearby);
     let grounded = this.onGround;
     this.onGround = false;
     this.onTerrain = false;
@@ -191,7 +198,7 @@ export class PlayerController {
     // Vertical
     const prevY = p.y;
     p.y += v.y * h;
-    for (const b of this.colliders) {
+    for (const b of this.nearby) {
       if (p.y >= b.maxY || p.y + H <= b.minY) continue;
       if (!circleOverlapsBox(p.x, p.z, r, b)) continue;
       if (v.y <= 0 && prevY >= b.maxY - EPS) {
@@ -213,7 +220,7 @@ export class PlayerController {
     p.x += v.x * h;
     p.z += v.z * h;
     for (let pass = 0; pass < 2; pass++) {
-      for (const b of this.colliders) {
+      for (const b of this.nearby) {
         if (p.y >= b.maxY - EPS || p.y + H <= b.minY + EPS) continue;
         const cx = clamp(p.x, b.minX, b.maxX);
         const cz = clamp(p.z, b.minZ, b.maxZ);
@@ -303,7 +310,7 @@ export class PlayerController {
   /** Whether the cylinder fits at the point (ignoring the box `except`). */
   private fitsAt(x: number, y: number, z: number, except: Box): boolean {
     const { radius: r, height: H } = this.cfg;
-    for (const c of this.colliders) {
+    for (const c of this.nearby) {
       if (c === except) continue;
       if (y >= c.maxY - EPS || y + H <= c.minY + EPS) continue;
       if (circleOverlapsBox(x, z, r, c)) return false;

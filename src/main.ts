@@ -25,7 +25,7 @@ const environment = createEnvironment(scene, renderer, quality);
 
 const camera = new PerspectiveCamera(60, 1, 0.1, 800);
 
-const world = buildWorld(quality.waterDetail, quality.level === 'low' ? 10 : 6);
+const world = buildWorld(quality);
 scene.add(world.root);
 
 // The rider group holds the avatar and the bicycle; it turns with the player and leans into turns
@@ -140,5 +140,5 @@ if (debug) {
   const tick = (frames = 1, dt = 1 / 60) => {
     for (let i = 0; i < frames; i++) frame(dt);
   };
-  Object.assign(window, { game: { controller, rig, input, tick } });
+  Object.assign(window, { game: { controller, rig, input, tick, renderer } });
 }

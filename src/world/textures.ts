@@ -12,7 +12,7 @@ import {
   type Texture,
 } from 'three';
 
-export type Pattern = 'noise' | 'grass' | 'plaster' | 'brick' | 'stone' | 'paving' | 'seams';
+export type Pattern = 'noise' | 'grass' | 'plaster' | 'brick' | 'stone' | 'paving' | 'seams' | 'windows';
 
 const SIZE = 256;
 
@@ -35,8 +35,11 @@ export function canDrawTextures(): boolean {
   return typeof document !== 'undefined';
 }
 
-/** A tiling texture of the given pattern in shades of `color`. */
-export function patternTexture(pattern: Pattern, color: number): Texture | null {
+/**
+ * A tiling texture of the given pattern in shades of `color`. `accent` is a second colour,
+ * used by 'windows' for the glass.
+ */
+export function patternTexture(pattern: Pattern, color: number, accent = 0x3a4a5c): Texture | null {
   if (!canDrawTextures()) return null;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = SIZE;
@@ -122,6 +125,24 @@ export function patternTexture(pattern: Pattern, color: number): Texture | null 
       }
       speckle(800, 0.05, 1);
       break;
+    case 'windows': {
+      // One tile = one floor × one window bay: plastered wall, a framed window with a sill
+      blotches(6, 0.03);
+      speckle(1500, 0.03, 1.5);
+      const glass = new Color(accent);
+      ctx.fillStyle = shade(base, 0.1);
+      ctx.fillRect(62, 40, 132, 170); // frame
+      ctx.fillStyle = '#' + glass.getHexString();
+      ctx.fillRect(72, 50, 112, 150);
+      ctx.fillStyle = shade(glass, 0.12); // a reflection in the upper pane
+      ctx.fillRect(72, 50, 112, 40);
+      ctx.fillStyle = shade(base, 0.1);
+      ctx.fillRect(125, 50, 6, 150); // mullion
+      ctx.fillRect(72, 95, 112, 5); // transom
+      ctx.fillStyle = shade(base, -0.12);
+      ctx.fillRect(56, 210, 144, 8); // sill
+      break;
+    }
     case 'seams': {
       const grad = ctx.createLinearGradient(0, 0, 32, 0);
       grad.addColorStop(0, shade(base, -0.04));

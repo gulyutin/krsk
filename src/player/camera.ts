@@ -1,5 +1,5 @@
 import { type PerspectiveCamera, Vector3 } from 'three';
-import { type Box, type Vec3, clamp, rayBox } from '../world/colliders';
+import { type Box, SpatialIndex, type Vec3, clamp, rayBox } from '../world/colliders';
 
 const PIVOT_HEIGHT = 1.7; // the camera orbits around head height
 const MIN_PITCH = -0.25;
@@ -17,13 +17,17 @@ export class CameraRig {
   private current = 10;
   private readonly pivot = new Vector3();
   private readonly dir = new Vector3();
+  private readonly index: SpatialIndex;
+  private readonly nearby: Box[] = [];
 
   /** groundAt: terrain height, so the camera never ends up under a hill. */
   constructor(
     readonly camera: PerspectiveCamera,
-    private readonly colliders: readonly Box[],
+    colliders: readonly Box[],
     private readonly groundAt?: (x: number, z: number) => number,
-  ) {}
+  ) {
+    this.index = new SpatialIndex(colliders);
+  }
 
   rotate(dx: number, dy: number): void {
     this.yaw -= dx;
@@ -52,7 +56,9 @@ export class CameraRig {
     this.dir.set(Math.sin(this.yaw) * cp, Math.sin(this.pitch), Math.cos(this.yaw) * cp);
 
     let want = this.distance;
-    for (const b of this.colliders) {
+    const reach = this.distance + 2;
+    const { x, z } = this.pivot;
+    for (const b of this.index.query(x - reach, z - reach, x + reach, z + reach, this.nearby)) {
       if (b.noCamera) continue;
       const t = rayBox(this.pivot, this.dir, b, WALL_MARGIN);
       if (t < want) want = t;

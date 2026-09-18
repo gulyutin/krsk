@@ -1,4 +1,5 @@
-import { Group } from 'three';
+import { Box3, Group } from 'three';
+import { type Rect, buildCity } from './city';
 import type { Box, Vec3 } from './colliders';
 import { placeLandmarks } from './landmarks/index';
 import { enableShadows } from './lighting';
@@ -17,8 +18,16 @@ export interface World {
   update(dt: number): void;
 }
 
-/** waterDetail: ripple normal map on the river (off on low quality). */
-export function buildWorld(waterDetail = true, terrainCell = 6): World {
+export interface WorldOptions {
+  /** Ripple normal map on the river. */
+  waterDetail?: boolean;
+  /** Terrain grid step in the playable area. */
+  terrainCell?: number;
+  /** Trees cast sun shadows. */
+  treeShadows?: boolean;
+}
+
+export function buildWorld({ waterDetail = true, terrainCell = 6, treeShadows = true }: WorldOptions = {}): World {
   const root = new Group();
   const terrain = buildTerrain(terrainCell);
   root.add(terrain.group);
@@ -33,6 +42,15 @@ export function buildWorld(waterDetail = true, terrainCell = 6): World {
   root.add(landmarks);
   placeLandmarks(landmarks, colliders);
   enableShadows(landmarks);
+
+  // The city fills the rest, keeping clear of every landmark's footprint
+  const occupied: Rect[] = landmarks.children.map((lm) => {
+    const b = new Box3().setFromObject(lm);
+    return { x0: b.min.x, x1: b.max.x, z0: b.min.z, z1: b.max.z };
+  });
+  const city = buildCity(occupied, treeShadows);
+  root.add(city.group);
+  colliders.push(...city.colliders);
 
   return {
     root,
