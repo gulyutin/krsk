@@ -22,7 +22,9 @@ import {
 
 // ---------- Tower ----------
 
-const SHAFT = { w: 6.5, h: 12.5 };
+const SHAFT = { w: 6.5, h: 15.5 };
+/** The tower stands forward of the building line, towards the square. */
+const TOWER_FORWARD = 2.6;
 const UPPER_W = 4.6;
 const FLUTED = { y: SHAFT.h + 0.4, h: 3.9 };
 const CLOCK = { y: FLUTED.y + FLUTED.h, h: 4.8 };
@@ -32,11 +34,13 @@ const SPIRE = { y: ROOF.y + ROOF.h - 0.2, h: 4.8 };
 
 // ---------- Building ----------
 
-const FLOOR_H = 2.5;
+const FLOOR_H = 2.2;
 const FIN_STEP = 1.5;
 
 /** A straight wing: origin at the front-left corner at ground level, facade facing its local +Z. */
 interface Wing {
+  /** Depth of the vertical fins on the facade; the tall wing has deep full-height blades. */
+  fin: number;
   x: number;
   z: number;
   /** Rotation around Y; negative turns the far end towards the square. */
@@ -46,13 +50,14 @@ interface Wing {
   floors: number;
 }
 
-const CONNECTOR: Wing = { x: SHAFT.w / 2, z: 0.5, angle: 0, length: 11, depth: 10, floors: 4 };
-const WING_A: Wing = { x: CONNECTOR.x + CONNECTOR.length, z: 1.5, angle: 0, length: 30, depth: 13, floors: 6 };
-const WING_B: Wing = { x: WING_A.x + WING_A.length, z: WING_A.z, angle: -0.45, length: 22, depth: 13, floors: 6 };
+// Next to the tower a long low wing; beyond the crease a taller wing angled towards the square
+const LOW: Wing = { x: 3.2, z: 0, angle: 0, length: 30, depth: 13, floors: 5, fin: 0.45 };
+const TALL: Wing = { x: LOW.x + LOW.length, z: 0, angle: -0.3, length: 34, depth: 14, floors: 6, fin: 0.8 };
 
 export function build(): Group {
   const root = group('clocktower');
   const tower = group('main');
+  tower.position.z = TOWER_FORWARD;
   root.add(tower);
 
   buildTower(tower);
@@ -162,7 +167,7 @@ function onWing(w: Wing, u: number, v: number, out: number): { pos: [number, num
 }
 
 function buildBuilding(root: Group): void {
-  const wings = [CONNECTOR, WING_A, WING_B];
+  const wings = [LOW, TALL];
   const glass: Placement[] = [];
   const glassDark: Placement[] = [];
   const spandrels: Placement[] = [];
@@ -197,13 +202,10 @@ function buildBuilding(root: Group): void {
     }
     // Vertical fins from the first floor up — the building's signature rhythm
     for (let u = FIN_STEP / 2; u < w.length; u += FIN_STEP) {
-      fins.push({ ...onWing(w, u, (FLOOR_H + height) / 2, 0.3), scale: [0.22, height - FLOOR_H, 0.6] });
+      fins.push({ ...onWing(w, u, (FLOOR_H + height) / 2, w.fin / 2), scale: [0.26, height - FLOOR_H, w.fin] });
     }
     // Window bands on the end walls that stay visible from the side
-    const ends: [number, number][] = [];
-    if (w === WING_A) ends.push([-0.05, CONNECTOR.floors]);
-    else if (w === WING_B) ends.push([w.length + 0.05, 1]);
-    else ends.push([-0.05, 1]);
+    const ends: [number, number][] = w === TALL ? [[w.length + 0.05, 1]] : [[-0.05, 1]];
     for (const [u, fromFloor] of ends) {
       for (let f = fromFloor; f < w.floors; f++) {
         glass.push({ ...onWing(w, u, f * FLOOR_H + 1.25, -w.depth / 2), rotY: w.angle + Math.PI / 2, scale: [w.depth - 1, 1.5, 0.1] });
@@ -219,18 +221,25 @@ function buildBuilding(root: Group): void {
   instances(root, unitBox, 'officeWhite', parapets);
   instances(root, unitBox, 'towerLight', roofs);
 
-  // Extra block filling the wedge behind the bend between wing A and wing B
-  box(root, 'officeWhite', [6, WING_A.floors * FLOOR_H, WING_A.depth], [WING_B.x + 2.5, (WING_A.floors * FLOOR_H) / 2, WING_A.z - WING_A.depth / 2]);
+  // Block filling the wedge behind the crease between the two wings, up to the tall roof
+  const wedgeH = TALL.floors * FLOOR_H;
+  box(root, 'officeWhite', [7, wedgeH, LOW.depth + 1], [TALL.x + 3, wedgeH / 2, LOW.z - (LOW.depth + 1) / 2]);
+  box(root, 'towerLight', [7, 0.1, LOW.depth + 1], [TALL.x + 3, wedgeH + 0.03, LOW.z - (LOW.depth + 1) / 2]);
 
-  // Entrance canopy on thin columns in the middle of wing A
-  const canopyU = WING_A.length / 2;
-  const c = onWing(WING_A, canopyU, 3.2, 1.8);
-  box(root, 'officeWhite', [16, 0.35, 3.6], c.pos);
+  // Vertical pylon closing the joint where the two wings meet
+  const jointH = TALL.floors * FLOOR_H;
+  const joint = onWing(TALL, 0.5, jointH / 2, 0.5);
+  box(root, 'officeWhite', [1.6, jointH, 1.6], joint.pos, [0, TALL.angle, 0]);
+
+  // Entrance canopy on thin columns, near the crease on the tall wing
+  const canopyU = 9;
+  const c = onWing(TALL, canopyU, 3.0, 1.8);
+  box(root, 'officeWhite', [15, 0.35, 3.6], c.pos, [0, TALL.angle, 0]);
   instances(
     root,
     unitBox,
     'towerLight',
-    [-7, -3.5, 0, 3.5, 7].map((du): Placement => ({ ...onWing(WING_A, canopyU + du, 1.5, 3.3), scale: [0.25, 3.0, 0.25] })),
+    [-6.5, -3.2, 0, 3.2, 6.5].map((du): Placement => ({ ...onWing(TALL, canopyU + du, 1.4, 3.3), scale: [0.25, 2.8, 0.25] })),
   );
 
   buildRoofSign(root);
@@ -251,8 +260,8 @@ function buildRoofSign(root: Group): void {
   const text = 'КРАСНОЯРСК';
   const px = 0.36;
   const width = (text.length * 4 - 1) * px;
-  const start = WING_A.length / 2 - width / 2;
-  const base = WING_A.floors * FLOOR_H + 0.9;
+  const start = TALL.length / 2 - width / 2;
+  const base = TALL.floors * FLOOR_H + 0.9;
   const pixels: Placement[] = [];
   [...text].forEach((ch, i) => {
     LETTERS[ch].forEach((row, r) => {
@@ -260,7 +269,7 @@ function buildRoofSign(root: Group): void {
         if (cell !== 'X') return;
         const u = start + (i * 4 + col + 0.5) * px;
         const v = base + (4 - r + 0.5) * px;
-        pixels.push({ ...onWing(WING_A, u, v, -0.3), scale: [px, px, 0.15] });
+        pixels.push({ ...onWing(TALL, u, v, -0.3), scale: [px, px, 0.15] });
       });
     });
   });
@@ -269,11 +278,11 @@ function buildRoofSign(root: Group): void {
 
 function buildSquare(root: Group): void {
   // Paved square in front of the building
-  solid(box(root, 'squarePaving', [70, 0.1, 22], [22, 0.05, 13]));
+  solid(box(root, 'squarePaving', [88, 0.1, 26], [26, 0.05, 15]));
 
   // Fountain: low red granite basin, water, a bowl and jets
-  const fx = 22;
-  const fz = 15;
+  const fx = 20;
+  const fz = 17;
   solid(box(root, 'graniteRed', [7, 0.6, 7], [fx, 0.3, fz]));
   box(root, 'water', [6.2, 0.1, 6.2], [fx, 0.58, fz]);
   shape(root, unitDisc, 'graniteRed', [1.2, 1.2, 1.4], [fx, 1.1, fz], [Math.PI / 2, 0, 0]);
@@ -292,16 +301,16 @@ function buildSquare(root: Group): void {
 
   // Flagpole with the red city flag
   const flagX = -9;
-  const flagZ = 12;
+  const flagZ = 14;
   solid(box(root, 'towerLight', [0.2, 12, 0.2], [flagX, 6, flagZ]));
   box(root, 'signRed', [2.6, 1.7, 0.05], [flagX + 1.4, 11, flagZ]);
   box(root, 'gold', [0.7, 0.8, 0.07], [flagX + 1.4, 11, flagZ]);
 
   // Fir trees at the sides of the square
   const firs: [number, number][] = [
-    [-8, 4],
-    [-12, 8],
-    [48, 20],
+    [-8, 6],
+    [-12, 11],
+    [54, 24],
   ];
   instances(root, unitBox, 'wood', firs.map(([x, z]): Placement => ({ pos: [x, 0.8, z], scale: [0.4, 1.6, 0.4] })));
   instances(

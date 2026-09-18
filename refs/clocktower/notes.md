@@ -24,7 +24,8 @@ The tower rises to roughly twice the height of the building. Square in front wit
 
 - Long slab, ~7–8 storeys, **white vertical fins** between windows give a strong vertical rhythm; thin horizontal floor lines.
 - Glazed, darker ground floor; a long **flat canopy** on thin columns over the main entrance.
-- The facade bends: two long wings meet at an obtuse angle; a lower connecting block sits between the tower and the main slab.
+- **Plan (corrected after a second look at the photos):** the tower stands *forward* of the building line, towards the square. Next to it a long **lower** wing (5 storeys, plain window grid), then a vertical joint pylon, then a **taller** wing (6 storeys, deep full-height fins) angled forward so the two wings embrace the square.
+- The red roof lettering sits on the tall angled wing, and the entrance canopy is on that wing near the joint.
 - Red lettering along the roof edge ("КРАСНОЯРСК…").
 
 ## Recognizable details (priority order)
