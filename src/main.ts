@@ -1,8 +1,9 @@
 import './style.css';
-import { PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
+import { Group, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
 import { Avatar } from './player/avatar';
+import { Bike } from './player/bike';
 import { CameraRig } from './player/camera';
-import { PlayerController } from './player/controller';
+import { PlayerController, turnToward } from './player/controller';
 import { Input } from './player/input';
 import { Hud } from './ui/hud';
 import { detectQuality } from './quality';
@@ -27,10 +28,20 @@ const camera = new PerspectiveCamera(60, 1, 0.1, 800);
 const world = buildWorld(quality.waterDetail);
 scene.add(world.root);
 
+// The rider group holds the avatar and the bicycle; it turns with the player and leans into turns
+const rider = new Group();
 const avatar = new Avatar();
-enableShadows(avatar.root);
-scene.add(avatar.root);
+const bike = new Bike();
+bike.root.visible = false;
+rider.add(avatar.root, bike.root);
+enableShadows(rider);
+scene.add(rider);
 const focus = new Vector3();
+let lean = 0;
+let lastFacing = 0;
+
+const WALK_CAMERA_DISTANCE = 10;
+const BIKE_CAMERA_DISTANCE = 13;
 
 const controller = new PlayerController(world.colliders, world.spawn);
 controller.facing = world.spawnYaw + Math.PI; // back to the camera
@@ -68,6 +79,12 @@ function frame(dt: number): void {
   const m = input.move;
   const sin = Math.sin(rig.yaw);
   const cos = Math.cos(rig.yaw);
+  if (input.consumeBike()) {
+    controller.setRiding(!controller.riding);
+    bike.root.visible = controller.riding;
+    input.setRiding(controller.riding);
+    rig.distance = controller.riding ? BIKE_CAMERA_DISTANCE : WALK_CAMERA_DISTANCE;
+  }
   controller.update(dt, cos * m.x - sin * m.y, -sin * m.x - cos * m.y, input.consumeJump());
 
   if (controller.fell && !hud.fading) {
@@ -84,9 +101,17 @@ function frame(dt: number): void {
   if (controller.onGround && rise > 0 && rise < 0.7) visualY += rise * (1 - Math.exp(-18 * dt));
   else visualY = p.y;
 
-  avatar.root.position.set(p.x, visualY, p.z);
-  avatar.root.rotation.y = controller.facing;
-  avatar.update(dt, Math.hypot(controller.vel.x, controller.vel.z), controller.cfg.walkSpeed, controller.onGround);
+  const speed = Math.hypot(controller.vel.x, controller.vel.z);
+  // Lean into turns on the bike: the faster and the sharper, the more
+  const turnRate = dt > 0 ? (turnToward(lastFacing, controller.facing, Math.PI) - lastFacing) / dt : 0;
+  lastFacing = controller.facing;
+  const targetLean = controller.riding ? Math.max(-0.35, Math.min(0.35, -turnRate * speed * 0.025)) : 0;
+  lean += (targetLean - lean) * (1 - Math.exp(-8 * dt));
+
+  rider.position.set(p.x, visualY, p.z);
+  rider.rotation.set(0, controller.facing, lean);
+  if (controller.riding) bike.update(dt, speed);
+  avatar.update(dt, speed, controller.cfg.walkSpeed, controller.onGround, controller.riding ? bike.pedal : null);
 
   world.update(dt);
   rig.update(dt, { x: p.x, y: visualY, z: p.z });

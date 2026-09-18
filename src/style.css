@@ -39,6 +39,35 @@ body.touch .jump-btn {
   display: block;
 }
 
+/* The bicycle button is on every device: a mouse click also works */
+.bike-btn {
+  position: fixed;
+  right: calc(36px + env(safe-area-inset-right));
+  bottom: calc(160px + env(safe-area-inset-bottom));
+  width: 88px;
+  height: 88px;
+  padding: 0;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  cursor: pointer;
+}
+
+body:not(.touch) .bike-btn {
+  bottom: calc(28px + env(safe-area-inset-bottom));
+  right: calc(28px + env(safe-area-inset-right));
+  width: 72px;
+  height: 72px;
+}
+
+.bike-btn.on {
+  background: rgba(46, 160, 67, 0.75);
+}
+
 .joy-base {
   position: fixed;
   left: 0;

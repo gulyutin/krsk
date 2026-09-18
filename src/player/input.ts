@@ -16,7 +16,11 @@ const KEYS_FORWARD = ['KeyW', 'ArrowUp'];
 const KEYS_BACK = ['KeyS', 'ArrowDown'];
 const KEYS_LEFT = ['KeyA', 'ArrowLeft'];
 const KEYS_RIGHT = ['KeyD', 'ArrowRight'];
-const GAME_KEYS = new Set([...KEYS_FORWARD, ...KEYS_BACK, ...KEYS_LEFT, ...KEYS_RIGHT, 'Space']);
+const KEYS_BIKE = ['KeyE', 'KeyB'];
+const GAME_KEYS = new Set([...KEYS_FORWARD, ...KEYS_BACK, ...KEYS_LEFT, ...KEYS_RIGHT, ...KEYS_BIKE, 'Space']);
+
+/** Bicycle icon for the touch button: two wheels, frame, seat and handlebar. */
+const BIKE_ICON = `<svg viewBox="0 0 48 32" width="52" height="36" fill="none" stroke="white" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="22" r="8"/><circle cx="38" cy="22" r="8"/><path d="M10 22 L19 10 L31 10 L38 22 M19 10 L24 22 L31 10 M16 7 H23 M31 10 L29 5 H34"/></svg>`;
 
 export function keyboardVector(keys: ReadonlySet<string>): Vec2 {
   const any = (codes: string[]) => (codes.some((c) => keys.has(c)) ? 1 : 0);
@@ -38,6 +42,7 @@ export function joystickVector(dx: number, dy: number, radius = JOY_RADIUS, dead
 export class Input {
   private readonly keys = new Set<string>();
   private jumpQueued = false;
+  private bikeQueued = false;
   private lookDX = 0;
   private lookDY = 0;
 
@@ -54,6 +59,7 @@ export class Input {
   private readonly base: HTMLDivElement;
   private readonly knob: HTMLDivElement;
   private readonly jumpBtn: HTMLButtonElement;
+  private readonly bikeBtn: HTMLButtonElement;
 
   constructor(private readonly surface: HTMLElement) {
     this.base = document.createElement('div');
@@ -64,7 +70,11 @@ export class Input {
     this.jumpBtn = document.createElement('button');
     this.jumpBtn.className = 'jump-btn';
     this.jumpBtn.setAttribute('aria-label', 'Прыжок');
-    document.body.append(this.base, this.jumpBtn);
+    this.bikeBtn = document.createElement('button');
+    this.bikeBtn.className = 'bike-btn';
+    this.bikeBtn.setAttribute('aria-label', 'Велосипед');
+    this.bikeBtn.innerHTML = BIKE_ICON;
+    document.body.append(this.base, this.jumpBtn, this.bikeBtn);
     this.placeJoystickIdle();
 
     if (window.matchMedia('(pointer: coarse)').matches) this.enableTouchUi();
@@ -87,6 +97,11 @@ export class Input {
       this.jumpQueued = true;
       this.jumpBtn.classList.add('pressed');
     });
+    this.bikeBtn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.bikeQueued = true;
+    });
     this.jumpBtn.addEventListener('pointerup', release);
     this.jumpBtn.addEventListener('pointercancel', release);
     this.jumpBtn.addEventListener('pointerleave', release);
@@ -99,6 +114,18 @@ export class Input {
     const y = k.y + this.joy.y;
     const len = Math.hypot(x, y);
     return len > 1 ? { x: x / len, y: y / len } : { x, y };
+  }
+
+  /** Get on or off the bicycle was requested since the last frame. */
+  consumeBike(): boolean {
+    const b = this.bikeQueued;
+    this.bikeQueued = false;
+    return b;
+  }
+
+  /** Shows whether the player is riding, so the bike button can light up. */
+  setRiding(on: boolean): void {
+    this.bikeBtn.classList.toggle('on', on);
   }
 
   consumeJump(): boolean {
@@ -118,6 +145,7 @@ export class Input {
     if (!GAME_KEYS.has(e.code)) return;
     e.preventDefault();
     if (e.code === 'Space' && !e.repeat) this.jumpQueued = true;
+    if (KEYS_BIKE.includes(e.code) && !e.repeat) this.bikeQueued = true;
     this.keys.add(e.code);
   };
 

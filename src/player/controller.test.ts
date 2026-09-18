@@ -89,3 +89,49 @@ describe('PlayerController', () => {
     expect(c.onGround).toBe(true);
   });
 });
+
+describe('PlayerController on a bicycle', () => {
+  it('rides about twice as fast as walking', () => {
+    const walker = make([ground]);
+    run(walker, 3, 0, 1);
+    const rider = make([ground]);
+    rider.setRiding(true);
+    run(rider, 3, 0, 1);
+    expect(Math.hypot(walker.vel.x, walker.vel.z)).toBeCloseTo(walker.cfg.walkSpeed, 0);
+    expect(Math.hypot(rider.vel.x, rider.vel.z)).toBeCloseTo(rider.cfg.bikeSpeed, 0);
+  });
+
+  it('accelerates gradually instead of instantly', () => {
+    const c = make([ground]);
+    c.setRiding(true);
+    run(c, 0.5, 0, 1);
+    expect(c.bikeSpeed).toBeLessThan(c.cfg.bikeSpeed * 0.5);
+  });
+
+  it('turns along an arc, not on the spot', () => {
+    const c = make([ground]);
+    c.setRiding(true);
+    run(c, 2, 0, 1); // heading +Z
+    run(c, 0.2, 1, 0); // ask for +X
+    const turned = Math.abs(c.facing);
+    expect(turned).toBeGreaterThan(0.3);
+    expect(turned).toBeLessThanOrEqual(c.cfg.bikeTurnRate * 0.2 + 1e-6);
+  });
+
+  it('loses its speed on a wall and does not pass through', () => {
+    const c = make([ground, box(-5, 0, 4, 5, 3, 4.5)]);
+    c.setRiding(true);
+    run(c, 3, 0, 1, { dt: 0.05 });
+    expect(c.pos.z).toBeLessThanOrEqual(4 - c.cfg.radius + 1e-6);
+    expect(c.bikeSpeed).toBeLessThan(1);
+  });
+
+  it('keeps walking speed after getting off', () => {
+    const c = make([ground]);
+    c.setRiding(true);
+    run(c, 3, 0, 1);
+    c.setRiding(false);
+    run(c, 1, 0, 1);
+    expect(Math.hypot(c.vel.x, c.vel.z)).toBeCloseTo(c.cfg.walkSpeed, 0);
+  });
+});

@@ -1,13 +1,15 @@
 // Landmark viewer: viewer.html?id=chapel[&view=front|side|back|top|iso|sheet]
 // Without `view` the camera can be orbited with the mouse or a finger.
-// id=world shows the whole map (views: overview, top, or any landmark id); id=avatar shows the player figure.
+// id=world shows the whole map (views: overview, top, or any landmark id); id=avatar shows the player figure,
+// id=bike the player on the bicycle.
 // Sets window.viewerReady = true once the requested view has been rendered.
 
 import './style.css';
-import { Box3, CircleGeometry, Color, Mesh, type Object3D, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
+import { Box3, CircleGeometry, Color, Group, Mesh, type Object3D, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { PALETTE, material } from './palette';
 import { Avatar } from './player/avatar';
+import { Bike } from './player/bike';
 import { LANDMARKS, PLACEMENTS } from './world/landmarks/index';
 import { qualityLevel } from './quality';
 import { createEnvironment, enableShadows, setupRenderer } from './world/lighting';
@@ -65,6 +67,17 @@ if (id === 'world') {
   scene.add(ground);
   if (id === 'avatar') {
     subject = focus = new Avatar().root;
+    scene.add(subject);
+  } else if (id === 'bike') {
+    // The astronaut on the bicycle, pedals mid-stroke
+    const bike = new Bike();
+    const rider = new Avatar();
+    bike.update(0, 0);
+    bike.pedal = 0.9;
+    bike.update(0, 0);
+    for (let i = 0; i < 60; i++) rider.update(1 / 30, 0, 7, true, bike.pedal);
+    subject = focus = new Group();
+    subject.add(bike.root, rider.root);
     scene.add(subject);
   } else {
     const build = LANDMARKS[id];

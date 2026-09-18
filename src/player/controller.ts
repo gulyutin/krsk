@@ -17,6 +17,12 @@ export interface ControllerConfig {
   coyoteTime: number;
   /** A jump pressed shortly before landing is not lost. */
   jumpBuffer: number;
+  /** Bicycle: top speed, acceleration and braking (units/s²), turn rate (rad/s), hop speed. */
+  bikeSpeed: number;
+  bikeAccel: number;
+  bikeBrake: number;
+  bikeTurnRate: number;
+  bikeJumpSpeed: number;
 }
 
 export const DEFAULT_CONFIG: ControllerConfig = {
@@ -29,6 +35,11 @@ export const DEFAULT_CONFIG: ControllerConfig = {
   killY: -1,
   coyoteTime: 0.12,
   jumpBuffer: 0.15,
+  bikeSpeed: 16,
+  bikeAccel: 9,
+  bikeBrake: 16,
+  bikeTurnRate: 3,
+  bikeJumpSpeed: 7,
 };
 
 const EPS = 1e-4;
@@ -36,9 +47,17 @@ const MAX_FALL_SPEED = 40;
 /** How far the respawn point is kept from the edge of the ground block. */
 const SAFE_MARGIN = 3;
 
+function angleDiff(from: number, to: number): number {
+  return ((((to - from + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) - Math.PI;
+}
+
+/** Turns towards `to` by at most `maxStep` radians. */
+export function turnToward(from: number, to: number, maxStep: number): number {
+  return from + clamp(angleDiff(from, to), -maxStep, maxStep);
+}
+
 export function dampAngle(from: number, to: number, k: number, dt: number): number {
-  const diff = ((((to - from + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) - Math.PI;
-  return from + diff * (1 - Math.exp(-k * dt));
+  return from + angleDiff(from, to) * (1 - Math.exp(-k * dt));
 }
 
 export class PlayerController {
@@ -49,6 +68,10 @@ export class PlayerController {
   facing = 0;
   /** Fell below killY; cleared by respawn(). */
   fell = false;
+  /** On the bicycle: faster, turns along an arc instead of on the spot. */
+  riding = false;
+  /** Current bicycle speed along `facing`. */
+  bikeSpeed = 0;
 
   private readonly safe: Vec3;
   private coyote = 0;
@@ -76,15 +99,17 @@ export class PlayerController {
       moveZ /= len;
     }
 
-    const blend = 1 - Math.exp(-(this.onGround ? 14 : 5) * dt);
-    vel.x += (moveX * cfg.walkSpeed - vel.x) * blend;
-    vel.z += (moveZ * cfg.walkSpeed - vel.z) * blend;
-
-    if (len > 0.1) this.facing = dampAngle(this.facing, Math.atan2(moveX, moveZ), 12, dt);
+    if (this.riding) this.steerBike(dt, moveX, moveZ, Math.min(len, 1));
+    else {
+      const blend = 1 - Math.exp(-(this.onGround ? 14 : 5) * dt);
+      vel.x += (moveX * cfg.walkSpeed - vel.x) * blend;
+      vel.z += (moveZ * cfg.walkSpeed - vel.z) * blend;
+      if (len > 0.1) this.facing = dampAngle(this.facing, Math.atan2(moveX, moveZ), 12, dt);
+    }
 
     if (jumpPressed) this.jumpTimer = cfg.jumpBuffer;
     if (this.jumpTimer > 0 && this.coyote > 0) {
-      vel.y = cfg.jumpSpeed;
+      vel.y = this.riding ? cfg.bikeJumpSpeed : cfg.jumpSpeed;
       this.coyote = 0;
       this.jumpTimer = 0;
     }
@@ -101,14 +126,39 @@ export class PlayerController {
     let ground: Box | null = null;
     for (let i = 0; i < steps; i++) ground = this.step(h) ?? ground;
 
+    // A wall or a kerb that stopped the bike also takes its speed away
+    if (this.riding) this.bikeSpeed = Math.min(this.bikeSpeed, Math.hypot(vel.x, vel.z));
     this.coyote = this.onGround ? cfg.coyoteTime : this.coyote - dt;
     if (this.onGround && ground) this.rememberSafe(ground);
     if (this.pos.y < cfg.killY) this.fell = true;
   }
 
+  /** Get on or off the bicycle; the current speed carries over. */
+  setRiding(on: boolean): void {
+    if (on === this.riding) return;
+    this.riding = on;
+    this.bikeSpeed = on ? Math.hypot(this.vel.x, this.vel.z) : 0;
+  }
+
+  /**
+   * Bicycle steering: the bike turns towards the stick direction at a limited rate
+   * and rolls along its own heading, so it travels along arcs.
+   */
+  private steerBike(dt: number, moveX: number, moveZ: number, throttle: number): void {
+    const { cfg, vel } = this;
+    if (throttle > 0.1) this.facing = turnToward(this.facing, Math.atan2(moveX, moveZ), cfg.bikeTurnRate * dt);
+    if (!this.onGround) return; // keep momentum in the air
+    const target = throttle * cfg.bikeSpeed;
+    const rate = target > this.bikeSpeed ? cfg.bikeAccel : cfg.bikeBrake;
+    this.bikeSpeed += clamp(target - this.bikeSpeed, -rate * dt, rate * dt);
+    vel.x = Math.sin(this.facing) * this.bikeSpeed;
+    vel.z = Math.cos(this.facing) * this.bikeSpeed;
+  }
+
   respawn(): void {
     Object.assign(this.pos, this.safe);
     this.vel.x = this.vel.y = this.vel.z = 0;
+    this.bikeSpeed = 0;
     this.fell = false;
     this.coyote = 0;
     this.jumpTimer = 0;

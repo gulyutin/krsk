@@ -173,14 +173,18 @@ export function onCorner(k: number, apothem: number, y: number): { pos: [number,
  *
  * Solid meshes first become mesh-less colliders, so collision still works.
  * Copies from instances() are baked in too, unless there are many of them.
- * Nested groups are merged on their own, so the viewer can still frame the group named "main".
+ * Nested groups are merged on their own, so the viewer can still frame the group named "main"
+ * and animated parts (wheels, limbs) keep moving.
  */
 export function mergeStatic(root: Group): void {
   root.updateMatrixWorld(true);
-  for (const child of [...root.children]) {
-    if (child instanceof Group) mergeChildren(child);
-  }
-  mergeChildren(root);
+  // Every group is merged on its own, nested ones too: moving parts (wheels, limbs)
+  // keep their own group and transform
+  const groups: Group[] = [];
+  root.traverse((o) => {
+    if (o instanceof Group) groups.push(o);
+  });
+  for (const g of groups) mergeChildren(g);
 }
 
 /** Above this many copies, instancing wins over baking them into one geometry. */

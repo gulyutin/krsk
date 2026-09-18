@@ -1,5 +1,7 @@
 import { BoxGeometry, Group, Mesh } from 'three';
 import { type ColorName, material } from '../palette';
+import { mergeStatic } from '../world/landmarks/kit';
+import { RIDING_POSE } from './bike';
 
 export type HatStyle = 'none' | 'cap' | 'beanie';
 export type Outfit = 'astronaut' | 'kid';
@@ -74,6 +76,8 @@ export class Avatar {
 
     if (opts.outfit === 'astronaut') this.buildAstronaut(head);
     else this.buildKid(head, opts);
+    // One mesh per colour in each limb, so the figure costs a few draw calls, not ~30
+    mergeStatic(this.root);
   }
 
   private buildAstronaut(head: Group): void {
@@ -140,11 +144,20 @@ export class Avatar {
   }
 
   /** speed: horizontal speed; maxSpeed: walking speed. */
-  update(dt: number, speed: number, maxSpeed: number, grounded: boolean): void {
+  /**
+   * pedal: crank angle of the bicycle when riding (see Bike.pedal), null when walking.
+   */
+  update(dt: number, speed: number, maxSpeed: number, grounded: boolean, pedal: number | null = null): void {
     const k = 1 - Math.exp(-14 * dt);
     const approach = (g: Group, target: number) => {
       g.rotation.x += (target - g.rotation.x) * k;
     };
+
+    if (pedal !== null) {
+      this.ride(pedal, approach);
+      return;
+    }
+    this.body.position.z = 0;
 
     if (grounded) {
       const t = Math.min(speed / maxSpeed, 1);
@@ -165,4 +178,24 @@ export class Avatar {
       this.body.position.y *= 1 - k;
     }
   }
+
+  /** Sitting on the saddle, hands on the handlebar, feet on the turning pedals. */
+  private ride(pedal: number, approach: (g: Group, target: number) => void): void {
+    const { saddleY, seatZ, bottomBracketY, crank } = RIDING_POSE;
+    this.body.position.set(0, saddleY - HIP_Y, seatZ);
+    approach(this.armL, -0.75);
+    approach(this.armR, -0.75);
+    // Each foot follows its pedal; the left pedal is half a turn behind the right one
+    for (const [leg, angle] of [
+      [this.legR, pedal],
+      [this.legL, pedal + Math.PI],
+    ] as const) {
+      const footY = bottomBracketY - crank * Math.cos(angle);
+      const footZ = -crank * Math.sin(angle);
+      leg.rotation.x = Math.atan2(-(footZ - seatZ), -(footY - saddleY));
+    }
+  }
 }
+
+/** Height of the hips (leg pivots) above the feet. */
+const HIP_Y = 0.8;
