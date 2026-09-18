@@ -76,6 +76,11 @@ export const PALETTE = {
   atticRoof: 0x7a3b2c,
   cornice: 0xd8cfa8,
 
+  // Communal bridge
+  concrete: 0xbab2a3,
+  concreteDark: 0x98907f,
+  asphalt: 0x56595d,
+
   // Landmark viewer
   viewerBg: 0xdfe6ee,
   viewerGround: 0xc3cad3,
@@ -133,6 +138,9 @@ const SURFACES: Partial<Record<ColorName, Surface>> = {
   visor: { roughness: 0.05, metalness: 0.8 },
   lampGlobe: { roughness: 0.2 },
   suitWhite: { roughness: 0.7 },
+  concrete: { roughness: 0.9, pattern: 'plaster', tile: 3 },
+  concreteDark: { roughness: 0.9, pattern: 'plaster', tile: 3 },
+  asphalt: { roughness: 0.95, pattern: 'noise', tile: 2 },
 };
 
 const materials = new Map<ColorName, MeshStandardMaterial>();

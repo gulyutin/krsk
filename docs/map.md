@@ -34,7 +34,7 @@ of the Communal bridge (56.00709 N, 92.87207 E) along the river (bearing ≈ 70�
 | Regional Museum | +55 / 18 | (60, −32), facing the river | built |
 | Clock tower + Administration | +153 / 200 | (120, −115), facing the river | built |
 | Paraskeva chapel (Karaulnaya hill) | −95 / 1990 | (−100, −290), y = 6 | built |
-| Communal bridge | from 0 / 0 across Otdykha island to +237 / −1822 | left end ≈ (10, 0) → island ≈ (45, 75) … (75, 135) → right bank ≈ (95, 165) | next |
+| Communal bridge | from 0 / 0 across Otdykha island to +237 / −1822 | x = 10, straight across: ramp from z −22, deck at y 7 over z 0…165 (arches over the main channel, viaduct over the island, arches over the narrow channel), ramp down to z 187; placed with rotationY = −π/2 | built |
 | Opera and Ballet Theatre | −155 / 242 | reserved ≈ (−140, −120) | planned |
 | Central Park with the Ferris wheel | ≈ −1090 / ≈ 470 | reserved ≈ (−330, −60) | planned |
 | Steamer "Svyatitel Nikolay" at the Strelka (Kacha mouth) | +1470 / ≈ 0 | reserved ≈ (380, −5) | planned |

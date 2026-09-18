@@ -30,9 +30,10 @@ describe.each(Object.keys(LANDMARKS))('landmark %s', (id) => {
     expect(collidersOf(g).length).toBeGreaterThan(0);
   });
 
-  it('stands on y = 0', () => {
+  it('stands on the ground (bridge piers may go under water)', () => {
     const box = new Box3().setFromObject(g, true);
-    expect(box.min.y).toBeCloseTo(0, 1);
+    expect(box.min.y).toBeLessThanOrEqual(0.05);
+    expect(box.min.y).toBeGreaterThan(-6);
   });
 
   it('is placed in landmarks.json', () => {

@@ -1,12 +1,14 @@
 import { Box3, type Group, Mesh, type Object3D } from 'three';
 import type { Box } from '../colliders';
 import placements from '../landmarks.json';
+import { build as bridge } from './bridge';
 import { build as chapel } from './chapel';
 import { build as clocktower } from './clocktower';
 import { build as museum } from './museum';
 
 /** Every landmark by id. Add new ones here. */
 export const LANDMARKS: Record<string, () => Group> = {
+  bridge,
   chapel,
   clocktower,
   museum,
