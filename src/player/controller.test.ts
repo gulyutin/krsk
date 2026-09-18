@@ -135,3 +135,48 @@ describe('PlayerController on a bicycle', () => {
     expect(Math.hypot(c.vel.x, c.vel.z)).toBeCloseTo(c.cfg.walkSpeed, 0);
   });
 });
+
+describe('PlayerController on terrain', () => {
+  // A plane rising 0.3 per unit towards +X, flat below x = 0
+  const slope = (x: number) => Math.max(0, x) * 0.3;
+  const make = () => new PlayerController([], { x: -5, y: 0, z: 0 }, undefined, (x) => slope(x));
+
+  it('walks up a slope and stays on the surface', () => {
+    const c = make();
+    run(c, 3, 1, 0);
+    expect(c.pos.x).toBeGreaterThan(5);
+    expect(c.pos.y).toBeCloseTo(slope(c.pos.x), 5);
+    expect(c.onGround).toBe(true);
+  });
+
+  it('stays on the ground walking downhill instead of flying off', () => {
+    const c = new PlayerController([], { x: 20, y: slope(20), z: 0 }, undefined, (x) => slope(x));
+    let airborne = 0;
+    for (let i = 0; i < 120; i++) {
+      c.update(1 / 60, -1, 0, false);
+      if (!c.onGround) airborne++;
+    }
+    expect(airborne).toBe(0);
+    expect(c.pos.y).toBeCloseTo(slope(c.pos.x), 5);
+  });
+
+  it('treats a cliff as a wall', () => {
+    const cliff = (x: number) => (x > 2 ? 10 : 0);
+    const c = new PlayerController([], { x: 0, y: 0, z: 0 }, undefined, cliff);
+    run(c, 2, 1, 0);
+    expect(c.pos.x).toBeLessThanOrEqual(2);
+    expect(c.pos.y).toBeCloseTo(0, 5);
+  });
+
+  it('falls onto the terrain from above', () => {
+    const c = new PlayerController([], { x: 10, y: 20, z: 0 }, undefined, (x) => slope(x));
+    run(c, 2, 0, 0);
+    expect(c.pos.y).toBeCloseTo(slope(10), 5);
+  });
+
+  it('prefers a box standing on the terrain', () => {
+    const c = new PlayerController([box(-2, 0, -2, 2, 3, 2)], { x: 0, y: 5, z: 0 }, undefined, () => 0);
+    run(c, 1, 0, 0);
+    expect(c.pos.y).toBeCloseTo(3, 5);
+  });
+});

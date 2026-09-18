@@ -46,6 +46,12 @@ const EPS = 1e-4;
 const MAX_FALL_SPEED = 40;
 /** How far the respawn point is kept from the edge of the ground block. */
 const SAFE_MARGIN = 3;
+/** Terrain rise the player walks up within one substep; steeper than this acts as a wall. */
+const MAX_CLIMB = 0.5;
+/** Going downhill, stay on the ground if it is at most this far below. */
+const SNAP_DOWN = 0.35;
+/** Terrain lower than this is shore or water, not a place to respawn. */
+const SAFE_TERRAIN_Y = 0.5;
 
 function angleDiff(from: number, to: number): number {
   return ((((to - from + Math.PI) % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) - Math.PI;
@@ -77,10 +83,15 @@ export class PlayerController {
   private coyote = 0;
   private jumpTimer = 0;
 
+  /** Standing on the terrain (not on a box) at the end of the last update. */
+  private onTerrain = false;
+
+  /** groundAt: terrain height at (x, z); without it the ground is boxes only. */
   constructor(
     private readonly colliders: readonly Box[],
     spawn: Vec3,
     readonly cfg: ControllerConfig = DEFAULT_CONFIG,
+    private readonly groundAt?: (x: number, z: number) => number,
   ) {
     this.pos = { ...spawn };
     this.safe = { ...spawn };
@@ -122,14 +133,20 @@ export class PlayerController {
     const dist = Math.hypot(vel.x, vel.y, vel.z) * dt;
     const steps = Math.max(1, Math.ceil(dist / (cfg.radius * 0.5)));
     const h = dt / steps;
+    let grounded = this.onGround;
     this.onGround = false;
+    this.onTerrain = false;
     let ground: Box | null = null;
-    for (let i = 0; i < steps; i++) ground = this.step(h) ?? ground;
+    for (let i = 0; i < steps; i++) {
+      ground = this.step(h, grounded) ?? ground;
+      grounded = this.onGround;
+    }
 
     // A wall or a kerb that stopped the bike also takes its speed away
     if (this.riding) this.bikeSpeed = Math.min(this.bikeSpeed, Math.hypot(vel.x, vel.z));
     this.coyote = this.onGround ? cfg.coyoteTime : this.coyote - dt;
-    if (this.onGround && ground) this.rememberSafe(ground);
+    if (this.onGround && ground && !this.onTerrain) this.rememberSafe(ground);
+    else if (this.onGround && this.onTerrain && this.pos.y > SAFE_TERRAIN_Y) Object.assign(this.safe, this.pos);
     if (this.pos.y < cfg.killY) this.fell = true;
   }
 
@@ -165,7 +182,7 @@ export class PlayerController {
   }
 
   /** One substep. Returns the box the player landed on, if any. */
-  private step(h: number): Box | null {
+  private step(h: number, grounded: boolean): Box | null {
     const { pos: p, vel: v, cfg } = this;
     const r = cfg.radius;
     const H = cfg.height;
@@ -188,7 +205,11 @@ export class PlayerController {
       }
     }
 
+    this.landOnTerrain();
+
     // Horizontal; two passes to resolve corners properly.
+    const beforeX = p.x;
+    const beforeZ = p.z;
     p.x += v.x * h;
     p.z += v.z * h;
     for (let pass = 0; pass < 2; pass++) {
@@ -243,7 +264,40 @@ export class PlayerController {
         }
       }
     }
+
+    if (this.groundAt) {
+      const g = this.groundAt(p.x, p.z);
+      if (p.y < g) {
+        if (g - p.y <= MAX_CLIMB) {
+          // Walking uphill
+          p.y = g;
+          if (v.y < 0) v.y = 0;
+          this.onGround = this.onTerrain = true;
+        } else {
+          // Too steep: a wall
+          p.x = beforeX;
+          p.z = beforeZ;
+          v.x = v.z = 0;
+        }
+      } else if ((grounded || this.onGround) && !ground && v.y <= 0 && p.y - g < SNAP_DOWN) {
+        // Walking or riding downhill: stay on the ground instead of flying off each bump.
+        // Not when standing on a box: paving just above the terrain must not be sunk into.
+        p.y = g;
+        this.onGround = this.onTerrain = true;
+      }
+    }
     return ground;
+  }
+
+  /** Stops a fall on the terrain surface. */
+  private landOnTerrain(): void {
+    if (!this.groundAt) return;
+    const g = this.groundAt(this.pos.x, this.pos.z);
+    if (this.pos.y <= g) {
+      this.pos.y = g;
+      if (this.vel.y < 0) this.vel.y = 0;
+      this.onGround = this.onTerrain = true;
+    }
   }
 
   /** Whether the cylinder fits at the point (ignoring the box `except`). */

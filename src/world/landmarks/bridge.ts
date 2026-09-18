@@ -7,7 +7,8 @@
 // with rotationY = −π/2 to run along world +Z. Upstream is local +Z.
 
 import type { Group } from 'three';
-import { MAP } from '../terrain';
+import { MAP } from '../map';
+import { ISLAND_Y, RIGHT_BANK_Y, TERRACE_Y } from '../relief';
 import {
   type Placement,
   box,
@@ -20,7 +21,8 @@ import {
   unitSphere,
 } from './kit';
 
-const DECK_TOP = 7;
+/** The deck is level with the city terrace, as the real bridge starts from the upper embankment. */
+const DECK_TOP = TERRACE_Y;
 const DECK_THICK = 0.8;
 const DECK_BOTTOM = DECK_TOP - DECK_THICK;
 const HALF_WIDTH = 6;
@@ -34,7 +36,9 @@ const RIGHT_EDGE = MAP.rightBankZ - MAP.leftBankZ;
 const RAMP_LENGTH = 22;
 /** Where the ramps down to the island leave the viaduct. */
 const SIDE_RAMP_X = ISLAND_START + 8;
-const ISLAND_GROUND = 0.3;
+const ISLAND_GROUND = ISLAND_Y;
+/** The deck runs on over the lower embankment promenade onto the terrace. */
+const BRIDGEHEAD = 22;
 
 /** Pier positions: the main channel spans shrink away from the city bank. */
 const MAIN_PIERS = [0, 0.36, 0.63, 0.83, 1].map((f) => LEFT_EDGE + f * (ISLAND_START - LEFT_EDGE));
@@ -57,9 +61,18 @@ export function build(): Group {
   for (const side of [-1, 1] as const) buildSideRamp(root, side);
   buildArches(root, CHANNEL_PIERS);
 
-  // Gentle ramps down to both banks
-  buildRamp(root, LEFT_EDGE, -1);
-  buildRamp(root, RIGHT_EDGE, 1);
+  // Left bank: the deck continues over the promenade onto the terrace, on two pairs of pillars.
+  // Right bank: a gentle ramp down to the low shore.
+  buildDeck(root, LEFT_EDGE - BRIDGEHEAD, LEFT_EDGE);
+  const pillars: Placement[] = [];
+  for (const x of [LEFT_EDGE - 5, LEFT_EDGE - 12]) {
+    for (const z of [-RIB_Z, RIB_Z]) {
+      pillars.push({ pos: [x, DECK_BOTTOM / 2, z], scale: [1.2, DECK_BOTTOM + 1, 1.2] });
+      colliderBox(root, [1.2, DECK_BOTTOM, 1.2], [x, DECK_BOTTOM / 2, z]);
+    }
+  }
+  instances(root, unitBox, 'concrete', pillars);
+  buildRamp(root, RIGHT_EDGE, 1, RIGHT_BANK_Y);
 
   mergeStatic(root);
   return root;
@@ -187,26 +200,28 @@ function buildViaduct(g: Group): void {
  * Ramp from the deck down to a bank. The visible surface is a smooth slab; underneath,
  * mesh-less colliders form low steps the player walks up without jumping.
  */
-function buildRamp(g: Group, edge: number, dir: 1 | -1): void {
-  const steps = 28; // 0.25 each, well under the step-up height
+function buildRamp(g: Group, edge: number, dir: 1 | -1, groundY: number): void {
+  const drop = DECK_TOP - groundY;
+  const steps = Math.ceil(drop / 0.25); // well under the step-up height
   const run = RAMP_LENGTH / steps;
   for (let i = 0; i < steps; i++) {
-    const h = DECK_TOP * ((steps - i) / steps);
+    const h = groundY + drop * ((steps - i) / steps);
     const x = edge + dir * (i + 0.5) * run;
-    colliderBox(g, [run, h, HALF_WIDTH * 2], [x, h / 2, 0]);
+    colliderBox(g, [run, h + 2, HALF_WIDTH * 2], [x, h / 2 - 1, 0]);
   }
-  const slope = Math.atan2(DECK_TOP, RAMP_LENGTH);
-  const slabLen = Math.hypot(DECK_TOP, RAMP_LENGTH);
+  const slope = Math.atan2(drop, RAMP_LENGTH);
+  const slabLen = Math.hypot(drop, RAMP_LENGTH);
   const cx = edge + (dir * RAMP_LENGTH) / 2;
-  box(g, 'asphalt', [slabLen, 0.4, 8.6], [cx, DECK_TOP / 2 - 0.1, 0], [0, 0, -dir * slope]);
-  box(g, 'concrete', [slabLen, 0.5, HALF_WIDTH * 2], [cx, DECK_TOP / 2 - 0.3, 0], [0, 0, -dir * slope]);
+  const midY = groundY + drop / 2;
+  box(g, 'asphalt', [slabLen, 0.4, 8.6], [cx, midY - 0.1, 0], [0, 0, -dir * slope]);
+  box(g, 'concrete', [slabLen, 0.5, HALF_WIDTH * 2], [cx, midY - 0.3, 0], [0, 0, -dir * slope]);
 
   // Retaining walls under the ramp, stepping down with it
   const walls: Placement[] = [];
   const pieces = 8;
   for (let i = 0; i < pieces; i++) {
     // Top follows the lower end of each piece, so the wall stays under the sloping slab
-    const h = DECK_TOP * ((pieces - i - 1) / pieces) + 0.1;
+    const h = groundY + drop * ((pieces - i - 1) / pieces) + 0.1;
     const w = RAMP_LENGTH / pieces;
     walls.push({ pos: [edge + dir * (i + 0.5) * w, h / 2, 0], scale: [w, h, HALF_WIDTH * 2 - 0.4] });
   }
@@ -215,7 +230,7 @@ function buildRamp(g: Group, edge: number, dir: 1 | -1): void {
   // Side railings on the ramp
   for (const side of [-1, 1]) {
     colliderBox(g, [RAMP_LENGTH, DECK_TOP + 1.4, 0.3], [cx, (DECK_TOP + 1.4) / 2, side * (HALF_WIDTH - 0.15)]);
-    box(g, 'iron', [slabLen, 0.08, 0.1], [cx, DECK_TOP / 2 + 1.0, side * (HALF_WIDTH - 0.15)], [0, 0, -dir * slope]);
+    box(g, 'iron', [slabLen, 0.08, 0.1], [cx, midY + 1.0, side * (HALF_WIDTH - 0.15)], [0, 0, -dir * slope]);
   }
 }
 

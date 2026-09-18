@@ -25,7 +25,7 @@ const environment = createEnvironment(scene, renderer, quality);
 
 const camera = new PerspectiveCamera(60, 1, 0.1, 800);
 
-const world = buildWorld(quality.waterDetail);
+const world = buildWorld(quality.waterDetail, quality.level === 'low' ? 10 : 6);
 scene.add(world.root);
 
 // The rider group holds the avatar and the bicycle; it turns with the player and leans into turns
@@ -43,9 +43,9 @@ let lastFacing = 0;
 const WALK_CAMERA_DISTANCE = 10;
 const BIKE_CAMERA_DISTANCE = 13;
 
-const controller = new PlayerController(world.colliders, world.spawn);
+const controller = new PlayerController(world.colliders, world.spawn, undefined, world.groundAt);
 controller.facing = world.spawnYaw + Math.PI; // back to the camera
-const rig = new CameraRig(camera, world.colliders);
+const rig = new CameraRig(camera, world.colliders, world.groundAt);
 rig.yaw = world.spawnYaw;
 rig.snap(controller.pos);
 

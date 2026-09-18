@@ -8,7 +8,7 @@ import {
 } from 'three';
 import { hex } from '../palette';
 import { rippleNormalMap } from './textures';
-import { MAP } from './terrain';
+import { MAP } from './map';
 
 const TILE = 12; // world units per texture repeat
 const FLOW_SPEED = 0.06; // texture repeats per second

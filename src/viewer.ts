@@ -13,7 +13,7 @@ import { Bike } from './player/bike';
 import { LANDMARKS, PLACEMENTS } from './world/landmarks/index';
 import { qualityLevel } from './quality';
 import { createEnvironment, enableShadows, setupRenderer } from './world/lighting';
-import { MAP } from './world/terrain';
+import { MAP } from './world/map';
 import { buildWorld } from './world/world';
 
 interface Angle {

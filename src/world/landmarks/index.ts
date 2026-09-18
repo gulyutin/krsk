@@ -1,6 +1,7 @@
 import { Box3, type Group, Mesh, type Object3D } from 'three';
 import type { Box } from '../colliders';
 import placements from '../landmarks.json';
+import { heightAt } from '../relief';
 import { build as bridge } from './bridge';
 import { build as chapel } from './chapel';
 import { build as clocktower } from './clocktower';
@@ -19,6 +20,8 @@ export interface LandmarkPlacement {
   name: string;
   position: [number, number, number];
   rotationY: number;
+  /** Fixed base height; without it the landmark stands on the terrain at its position. */
+  baseY?: number;
 }
 
 export const PLACEMENTS = placements as LandmarkPlacement[];
@@ -52,7 +55,10 @@ export function placeLandmarks(root: Group, colliders: Box[]): void {
     const build = LANDMARKS[p.id];
     if (!build) throw new Error(`Unknown landmark id in landmarks.json: ${p.id}`);
     const g = build();
-    g.position.set(...p.position);
+    // Height comes from the terrain (pads keep it flat under buildings) unless baseY is given;
+    // the JSON y is ignored
+    const y = p.baseY ?? heightAt(p.position[0], p.position[2]);
+    g.position.set(p.position[0], y, p.position[2]);
     g.rotation.y = p.rotationY;
     root.add(g);
     colliders.push(...collidersOf(g));

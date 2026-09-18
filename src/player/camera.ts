@@ -18,9 +18,11 @@ export class CameraRig {
   private readonly pivot = new Vector3();
   private readonly dir = new Vector3();
 
+  /** groundAt: terrain height, so the camera never ends up under a hill. */
   constructor(
     readonly camera: PerspectiveCamera,
     private readonly colliders: readonly Box[],
+    private readonly groundAt?: (x: number, z: number) => number,
   ) {}
 
   rotate(dx: number, dy: number): void {
@@ -55,6 +57,17 @@ export class CameraRig {
       const t = rayBox(this.pivot, this.dir, b, WALL_MARGIN);
       if (t < want) want = t;
     }
+    // March along the ray and stop in front of the terrain
+    if (this.groundAt) {
+      for (let t = 1; t < want; t += 1) {
+        const x = this.pivot.x + this.dir.x * t;
+        const z = this.pivot.z + this.dir.z * t;
+        if (this.pivot.y + this.dir.y * t < this.groundAt(x, z) + WALL_MARGIN * 2) {
+          want = t - 1;
+          break;
+        }
+      }
+    }
     want = Math.max(want, MIN_DISTANCE);
 
     // Move in immediately (never peek through a wall), move back out smoothly.
@@ -62,6 +75,10 @@ export class CameraRig {
     else this.current += (want - this.current) * (1 - Math.exp(-3 * dt));
 
     this.camera.position.copy(this.pivot).addScaledVector(this.dir, this.current);
+    if (this.groundAt) {
+      const floor = this.groundAt(this.camera.position.x, this.camera.position.z) + WALL_MARGIN * 2;
+      if (this.camera.position.y < floor) this.camera.position.y = floor;
+    }
     this.camera.lookAt(this.pivot);
   }
 }
