@@ -1,17 +1,28 @@
-import { Box3, Mesh } from 'three';
+import { Box3, InstancedMesh, Mesh } from 'three';
 import { describe, expect, it } from 'vitest';
 import { LANDMARKS, PLACEMENTS, collidersOf } from './index';
 
 describe.each(Object.keys(LANDMARKS))('landmark %s', (id) => {
   const g = LANDMARKS[id]();
 
-  it('has 30–150 meshes', () => {
-    let meshes = 0;
+  it('draws in at most 25 calls after merging', () => {
+    let drawCalls = 0;
     g.traverse((o) => {
-      if (o instanceof Mesh) meshes++;
+      if (o instanceof Mesh) drawCalls++;
     });
-    expect(meshes).toBeGreaterThanOrEqual(30);
-    expect(meshes).toBeLessThanOrEqual(150);
+    expect(drawCalls).toBeLessThanOrEqual(25);
+  });
+
+  it('still has the detail of dozens of primitives', () => {
+    let triangles = 0;
+    g.traverse((o) => {
+      if (!(o instanceof Mesh)) return;
+      const position = o.geometry.attributes.position;
+      const count = o.geometry.index ? o.geometry.index.count : position.count;
+      triangles += (count / 3) * (o instanceof InstancedMesh ? o.count : 1);
+    });
+    // A box is 12 triangles, so this is well over 30 primitives
+    expect(triangles).toBeGreaterThan(600);
   });
 
   it('has a main part and solid colliders', () => {

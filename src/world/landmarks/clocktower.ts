@@ -10,6 +10,7 @@ import {
   colliderBox,
   group,
   instances,
+  mergeStatic,
   onFace,
   shape,
   solid,
@@ -63,6 +64,8 @@ export function build(): Group {
   buildTower(tower);
   buildBuilding(root);
   buildSquare(root);
+
+  mergeStatic(root);
   return root;
 }
 

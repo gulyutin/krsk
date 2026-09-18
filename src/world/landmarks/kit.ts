@@ -1,18 +1,23 @@
 // Shared building blocks for landmarks. Everything is a primitive with a palette color.
 
 import {
+  type BufferAttribute,
   Box3,
   BoxGeometry,
+  type BufferGeometry as Geometry,
   type BufferGeometry,
   ConeGeometry,
   CylinderGeometry,
   Group,
   InstancedMesh,
+  type Material,
+  Matrix4,
   Mesh,
   Object3D,
   SphereGeometry,
   Vector3,
 } from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { type ColorName, lambert } from '../../palette';
 
 /** Rotation that turns an 8-sided cylinder so a flat face (not a corner) points to +Z. */
@@ -159,6 +164,68 @@ export function onCorner(k: number, apothem: number, y: number): { pos: [number,
   const a = (k * Math.PI) / 4 + Math.PI / 8;
   const r = apothem * OCT_R;
   return { pos: [Math.sin(a) * r, y, Math.cos(a) * r], rotY: a };
+}
+
+/**
+ * Merges the plain meshes of a landmark into one mesh per color, cutting a landmark
+ * from dozens of draw calls to a handful. Call it at the end of build().
+ *
+ * Solid meshes first become mesh-less colliders, so collision still works.
+ * Copies from instances() are baked in too, unless there are many of them.
+ * Nested groups are merged on their own, so the viewer can still frame the group named "main".
+ */
+export function mergeStatic(root: Group): void {
+  root.updateMatrixWorld(true);
+  for (const child of [...root.children]) {
+    if (child instanceof Group) mergeChildren(child);
+  }
+  mergeChildren(root);
+}
+
+/** Above this many copies, instancing wins over baking them into one geometry. */
+const BAKE_LIMIT = 200;
+
+function mergeChildren(container: Group): void {
+  const byMaterial = new Map<Material, { geometries: Geometry[]; material: Material }>();
+  const add = (material: Material, geometry: Geometry) => {
+    const bucket = byMaterial.get(material) ?? { geometries: [], material };
+    bucket.geometries.push(geometry);
+    byMaterial.set(material, bucket);
+  };
+
+  for (const child of [...container.children]) {
+    if (child instanceof InstancedMesh) {
+      if (child.count > BAKE_LIMIT) continue;
+      child.updateMatrix();
+      const m = new Matrix4();
+      for (let i = 0; i < child.count; i++) {
+        child.getMatrixAt(i, m);
+        add(child.material as Material, child.geometry.clone().applyMatrix4(m).applyMatrix4(child.matrix));
+      }
+      container.remove(child);
+      continue;
+    }
+    if (!(child instanceof Mesh)) continue;
+    const material = child.material as Material;
+    child.updateMatrix();
+
+    if (child.userData.solid) {
+      const b = new Box3().setFromBufferAttribute(child.geometry.attributes.position as BufferAttribute);
+      b.applyMatrix4(child.matrix);
+      (container.userData.colliders ??= []).push(b);
+    }
+
+    add(material, child.geometry.clone().applyMatrix4(child.matrix));
+    container.remove(child);
+  }
+
+  for (const { geometries, material } of byMaterial.values()) {
+    const merged = mergeGeometries(geometries, false);
+    if (!merged) continue;
+    const mesh = new Mesh(merged, material);
+    mesh.matrixAutoUpdate = false;
+    container.add(mesh);
+  }
 }
 
 export function group(name?: string): Group {

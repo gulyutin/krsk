@@ -9,6 +9,7 @@ import {
   box,
   group,
   instances,
+  mergeStatic,
   octPyramid,
   octagon,
   onCorner,
@@ -49,6 +50,8 @@ export function build(): Group {
   buildEntranceAndIcon(main);
   buildRoof(main);
   buildSurroundings(root);
+
+  mergeStatic(root);
   return root;
 }
 

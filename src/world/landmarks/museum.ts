@@ -10,6 +10,7 @@ import {
   colliderBox,
   group,
   instances,
+  mergeStatic,
   shape,
   solid,
   unitBox,
@@ -36,6 +37,8 @@ export function build(): Group {
   buildPylons(main);
   buildPortico(main);
   buildSurroundings(root);
+
+  mergeStatic(root);
   return root;
 }
 

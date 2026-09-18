@@ -13,7 +13,8 @@ Browser 3D game for a first-grader. The full specification is in `SPEC.md` (in R
 
 ## Layout notes
 
-- A landmark is `src/world/landmarks/<id>.ts` exporting `build(): Group`, registered in `landmarks/index.ts` and placed via `src/world/landmarks.json`. Mark solid meshes with `solid()` from `kit.ts`; the world turns them into box colliders. For rotated parts use several small `colliderBox()` pieces (data only, no meshes) instead — an axis-aligned box around a rotated wall is too big. Name the building itself `main` (the viewer frames it).
+- A landmark is `src/world/landmarks/<id>.ts` exporting `build(): Group`, registered in `landmarks/index.ts` and placed via `src/world/landmarks.json`. Mark solid meshes with `solid()` from `kit.ts`; the world turns them into box colliders. For rotated parts use several small `colliderBox()` pieces (data only, no meshes) instead — an axis-aligned box around a rotated wall is too big.
+- End every `build()` with `mergeStatic(root)`: it bakes the static meshes into one mesh per color (a landmark drops from ~35 draw calls to ~15) and turns `solid()` meshes into colliders first. Keep the building itself in a group named `main`, which is merged separately. Name the building itself `main` (the viewer frames it).
 - Reference photos in `refs/` are git-ignored (size, copyright); only `refs/<id>/notes.md` is committed.
 
 ## Commands
