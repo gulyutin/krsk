@@ -1,6 +1,7 @@
 import { Group } from 'three';
 import type { Box, Vec3 } from './colliders';
 import { placeLandmarks } from './landmarks/index';
+import { enableShadows } from './lighting';
 import { buildRiver } from './river';
 import { buildTerrain } from './terrain';
 
@@ -13,16 +14,22 @@ export interface World {
   update(dt: number): void;
 }
 
-export function buildWorld(): World {
+/** waterDetail: ripple normal map on the river (off on low quality). */
+export function buildWorld(waterDetail = true): World {
   const root = new Group();
   const terrain = buildTerrain();
   root.add(terrain.group);
   const colliders = terrain.colliders;
 
-  const river = buildRiver();
+  const river = buildRiver(waterDetail);
+  enableShadows(terrain.group, false);
+  enableShadows(river.mesh, false);
   root.add(river.mesh);
 
-  placeLandmarks(root, colliders);
+  const landmarks = new Group();
+  root.add(landmarks);
+  placeLandmarks(landmarks, colliders);
+  enableShadows(landmarks);
 
   return {
     root,

@@ -1,6 +1,7 @@
 import { BoxGeometry, Group, Mesh, PlaneGeometry } from 'three';
-import { type ColorName, lambert } from '../palette';
+import { type ColorName, material } from '../palette';
 import { type Box, box } from './colliders';
+import { mergeStatic } from './landmarks/kit';
 
 /**
  * Schematic map of central Krasnoyarsk, see docs/map.md. The Yenisei is
@@ -37,7 +38,7 @@ const unit = new BoxGeometry(1, 1, 1);
 export function solidBox(parent: Group, colliders: Box[], b: Box, color: ColorName | null): Mesh | null {
   colliders.push(b);
   if (!color) return null;
-  const m = new Mesh(unit, lambert(color));
+  const m = new Mesh(unit, material(color));
   m.scale.set(b.maxX - b.minX, b.maxY - b.minY, b.maxZ - b.minZ);
   m.position.set((b.minX + b.maxX) / 2, (b.minY + b.maxY) / 2, (b.minZ + b.maxZ) / 2);
   m.matrixAutoUpdate = false;
@@ -70,7 +71,7 @@ export function buildTerrain(): Terrain {
   const far = 2400;
   const cx = (west + east) / 2;
   const plane = (x0: number, x1: number, z0: number, z1: number) => {
-    const p = new Mesh(new PlaneGeometry(x1 - x0, z1 - z0), lambert('grassDark'));
+    const p = new Mesh(new PlaneGeometry(x1 - x0, z1 - z0), material('grassDark'));
     p.rotation.x = -Math.PI / 2;
     p.position.set((x0 + x1) / 2, -0.1, (z0 + z1) / 2);
     group.add(p);
@@ -105,5 +106,7 @@ export function buildTerrain(): Terrain {
     );
   }
 
+  // One mesh per colour, textures laid out in world units; colliders are already collected
+  mergeStatic(group);
   return { group, colliders };
 }

@@ -5,6 +5,7 @@ Browser 3D game for a first-grader. The full specification is in `SPEC.md` (in R
 ## Rules
 
 - Geometry only from primitives; colors only from `palette.ts`.
+- Look: "soft realism" (decided 2026-09-18, supersedes SPEC section 7 on materials and shadows). Materials are `MeshStandardMaterial` from `material()` in `palette.ts`; textures are drawn in code from the palette colour (`world/textures.ts`, no image files) and get world-space UVs in `mergeStatic()`; one sun shadow map that follows the player; sky dome, fog and an environment map from `world/lighting.ts`. Quality levels in `src/quality.ts` (`?q=low|medium|high`) must keep phones at 30+ fps.
 - One landmark = one file with a single `build()` export.
 - After any geometry change: take screenshots and look at the PNGs. Never claim "done" without that.
 - Do not touch controls or the camera in landmark sessions.

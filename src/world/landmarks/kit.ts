@@ -18,7 +18,8 @@ import {
   Vector3,
 } from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { type ColorName, lambert } from '../../palette';
+import { type ColorName, material } from '../../palette';
+import { applyWorldUV } from '../textures';
 
 /** Rotation that turns an 8-sided cylinder so a flat face (not a corner) points to +Z. */
 export const OCT_TURN = Math.PI / 8;
@@ -27,13 +28,13 @@ const OCT_R = 1 / Math.cos(Math.PI / 8);
 
 export const unitBox = new BoxGeometry(1, 1, 1);
 /** Half disc of radius 1 and depth 1 in the XY plane, curved side up — tops of arches. */
-export const unitArch = new CylinderGeometry(1, 1, 1, 12, 1, false, Math.PI / 2, Math.PI).rotateX(Math.PI / 2);
-export const unitSphere = new SphereGeometry(1, 10, 8);
+export const unitArch = new CylinderGeometry(1, 1, 1, 20, 1, false, Math.PI / 2, Math.PI).rotateX(Math.PI / 2);
+export const unitSphere = new SphereGeometry(1, 16, 12);
 /** Disc of radius 1 and thickness 1 facing +Z — clock dials, round plaques. */
 export const unitDisc = new CylinderGeometry(1, 1, 1, 32).rotateX(Math.PI / 2);
 /** Square pyramid with base half-width 1 and height 1, faces aligned with the axes. */
 export const unitPyramid = new ConeGeometry(Math.SQRT2, 1, 4).rotateY(Math.PI / 4);
-export const unitCone = new ConeGeometry(1, 1, 8);
+export const unitCone = new ConeGeometry(1, 1, 12);
 
 /** Mark a mesh as solid: the world turns it into a box collider. */
 export function solid<T extends Object3D>(o: T): T {
@@ -64,7 +65,7 @@ export function shape(
   pos: [number, number, number],
   rot: [number, number, number] = [0, 0, 0],
 ): Mesh {
-  const m = new Mesh(geometry, lambert(color));
+  const m = new Mesh(geometry, material(color));
   m.scale.set(...size);
   m.position.set(...pos);
   m.rotation.set(...rot);
@@ -95,7 +96,7 @@ export function octagon(
   height: number,
 ): Mesh {
   const geo = new CylinderGeometry(apothemTop * OCT_R, apothemBottom * OCT_R, height, 8);
-  const m = new Mesh(geo, lambert(color));
+  const m = new Mesh(geo, material(color));
   m.rotation.y = OCT_TURN;
   m.position.y = bottom + height / 2;
   parent.add(m);
@@ -104,7 +105,7 @@ export function octagon(
 
 /** Octagonal pyramid (tent roof) standing on y = bottom. */
 export function octPyramid(parent: Object3D, color: ColorName, apothem: number, bottom: number, height: number): Mesh {
-  const m = new Mesh(new ConeGeometry(apothem * OCT_R, height, 8), lambert(color));
+  const m = new Mesh(new ConeGeometry(apothem * OCT_R, height, 8), material(color));
   m.rotation.y = OCT_TURN;
   m.position.y = bottom + height / 2;
   parent.add(m);
@@ -128,7 +129,7 @@ export function instances(
   color: ColorName,
   placements: Placement[],
 ): InstancedMesh {
-  const mesh = new InstancedMesh(geometry, lambert(color), placements.length);
+  const mesh = new InstancedMesh(geometry, material(color), placements.length);
   const dummy = new Object3D();
   dummy.rotation.order = 'YXZ';
   placements.forEach((p, i) => {
@@ -224,6 +225,8 @@ function mergeChildren(container: Group): void {
   for (const { geometries, material } of byMaterial.values()) {
     const merged = mergeGeometries(geometries, false);
     if (!merged) continue;
+    // Textures keep the same scale on every face, however the boxes were stretched
+    applyWorldUV(merged, (material.userData.tile as number | undefined) ?? 3);
     const mesh = new Mesh(merged, material);
     mesh.matrixAutoUpdate = false;
     container.add(mesh);

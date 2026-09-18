@@ -1,5 +1,5 @@
 import { BoxGeometry, Group, Mesh } from 'three';
-import { type ColorName, lambert } from '../palette';
+import { type ColorName, material } from '../palette';
 
 export type HatStyle = 'none' | 'cap' | 'beanie';
 export type Outfit = 'astronaut' | 'kid';
@@ -33,7 +33,7 @@ function part(
   y: number,
   z: number,
 ): Mesh {
-  const m = new Mesh(unit, lambert(color));
+  const m = new Mesh(unit, material(color));
   m.scale.set(w, h, d);
   m.position.set(x, y, z);
   parent.add(m);

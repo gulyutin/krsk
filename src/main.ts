@@ -1,36 +1,36 @@
 import './style.css';
-import { Color, Fog, PerspectiveCamera, Scene, WebGLRenderer } from 'three';
-import { PALETTE } from './palette';
+import { PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
 import { Avatar } from './player/avatar';
 import { CameraRig } from './player/camera';
 import { PlayerController } from './player/controller';
 import { Input } from './player/input';
 import { Hud } from './ui/hud';
-import { addLighting } from './world/lighting';
+import { detectQuality } from './quality';
+import { createEnvironment, enableShadows, setupRenderer } from './world/lighting';
 import { buildWorld } from './world/world';
 
 const MAX_DT = 0.05;
 const debug = new URLSearchParams(location.search).has('debug');
 
-const renderer = new WebGLRenderer({
-  antialias: window.devicePixelRatio < 2,
-  powerPreference: 'high-performance',
-});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const quality = detectQuality();
+
+const renderer = new WebGLRenderer({ antialias: quality.antialias, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality.pixelRatio));
+setupRenderer(renderer, quality);
 document.getElementById('app')!.appendChild(renderer.domElement);
 
 const scene = new Scene();
-scene.background = new Color(PALETTE.sky);
-scene.fog = new Fog(PALETTE.sky, 90, 340);
-addLighting(scene);
+const environment = createEnvironment(scene, renderer, quality);
 
 const camera = new PerspectiveCamera(60, 1, 0.1, 800);
 
-const world = buildWorld();
+const world = buildWorld(quality.waterDetail);
 scene.add(world.root);
 
 const avatar = new Avatar();
+enableShadows(avatar.root);
 scene.add(avatar.root);
+const focus = new Vector3();
 
 const controller = new PlayerController(world.colliders, world.spawn);
 controller.facing = world.spawnYaw + Math.PI; // back to the camera
@@ -90,6 +90,7 @@ function frame(dt: number): void {
 
   world.update(dt);
   rig.update(dt, { x: p.x, y: visualY, z: p.z });
+  environment.update(focus.set(p.x, visualY, p.z), camera.position);
   renderer.render(scene, camera);
 }
 
@@ -103,7 +104,7 @@ renderer.setAnimationLoop((now) => {
     const info = renderer.info.render;
     const p = controller.pos;
     hud.setDebug(
-      `fps ${fps.toFixed(0)}  calls ${info.calls}  tris ${info.triangles}\n` +
+      `fps ${fps.toFixed(0)}  calls ${info.calls}  tris ${info.triangles}  q ${quality.level}\n` +
         `pos ${p.x.toFixed(1)} ${p.y.toFixed(1)} ${p.z.toFixed(1)}  ${controller.onGround ? 'ground' : 'air'}`,
     );
   }

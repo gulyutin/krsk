@@ -6,10 +6,11 @@
 import './style.css';
 import { Box3, CircleGeometry, Color, Mesh, type Object3D, PerspectiveCamera, Scene, Vector3, WebGLRenderer } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { PALETTE, lambert } from './palette';
+import { PALETTE, material } from './palette';
 import { Avatar } from './player/avatar';
 import { LANDMARKS, PLACEMENTS } from './world/landmarks/index';
-import { addLighting } from './world/lighting';
+import { qualityLevel } from './quality';
+import { createEnvironment, enableShadows, setupRenderer } from './world/lighting';
 import { MAP } from './world/terrain';
 import { buildWorld } from './world/world';
 
@@ -34,19 +35,22 @@ const params = new URLSearchParams(location.search);
 const id = params.get('id') ?? 'chapel';
 const view = params.get('view');
 
+const quality = qualityLevel('high');
 const renderer = new WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+setupRenderer(renderer, quality);
 document.getElementById('app')!.appendChild(renderer.domElement);
 
 const scene = new Scene();
-addLighting(scene);
+const environment = createEnvironment(scene, renderer, quality);
+// No fog here: the viewer is for judging shapes, and the world overview is far away
+scene.fog = null;
 const camera = new PerspectiveCamera(40, 1, 0.1, 3000);
 
 let subject: Object3D;
 let focus: Object3D;
 if (id === 'world') {
   const world = buildWorld();
-  scene.background = new Color(PALETTE.sky);
   scene.add(world.root);
   subject = focus = world.root;
   const avatar = new Avatar();
@@ -54,9 +58,10 @@ if (id === 'world') {
   scene.add(avatar.root);
 } else {
   scene.background = new Color(PALETTE.viewerBg);
-  const ground = new Mesh(new CircleGeometry(200, 48), lambert('viewerGround'));
+  const ground = new Mesh(new CircleGeometry(200, 48), material('viewerGround'));
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.01;
+  ground.receiveShadow = true;
   scene.add(ground);
   if (id === 'avatar') {
     subject = focus = new Avatar().root;
@@ -137,6 +142,11 @@ function worldAngle(name: string): { box: Box3; yaw: number; pitch: number } {
   return { box: map, yaw: 0.5, pitch: 0.75 };
 }
 
+function draw(): void {
+  environment.update(boundsOf(focus).getCenter(new Vector3()), camera.position);
+  renderer.render(scene, camera);
+}
+
 function render(): void {
   const w = window.innerWidth;
   const h = window.innerHeight;
@@ -154,7 +164,7 @@ function render(): void {
       aim(camera, boundsOf(a.main ? focus : subject), a.yaw, a.pitch);
       renderer.setViewport(x, y, cw, ch);
       renderer.setScissor(x, y, cw, ch);
-      renderer.render(scene, camera);
+      draw();
     });
     renderer.setScissorTest(false);
   } else {
@@ -166,10 +176,11 @@ function render(): void {
       const a = LANDMARK_VIEWS[view ?? 'iso'] ?? LANDMARK_VIEWS.iso;
       aim(camera, boundsOf(a.main ? focus : subject), a.yaw, a.pitch);
     }
-    renderer.render(scene, camera);
+    draw();
   }
 }
 
+enableShadows(subject);
 render();
 
 if (view) {
@@ -191,7 +202,7 @@ if (view) {
   resize();
   renderer.setAnimationLoop(() => {
     controls.update();
-    renderer.render(scene, camera);
+    draw();
   });
   (window as unknown as { viewerReady: boolean }).viewerReady = true;
 }

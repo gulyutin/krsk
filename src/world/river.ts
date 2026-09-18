@@ -1,12 +1,13 @@
 import {
   CanvasTexture,
   Mesh,
-  MeshLambertMaterial,
+  MeshStandardMaterial,
   PlaneGeometry,
   RepeatWrapping,
   SRGBColorSpace,
 } from 'three';
 import { hex } from '../palette';
+import { rippleNormalMap } from './textures';
 import { MAP } from './terrain';
 
 const TILE = 12; // world units per texture repeat
@@ -50,13 +51,19 @@ export interface River {
   update(dt: number): void;
 }
 
-export function buildRiver(): River {
+/** detail: add a moving ripple normal map, so the sun glints on the water. */
+export function buildRiver(detail = true): River {
   const length = MAP.east - MAP.west + 1600;
   const width = MAP.rightBankZ - MAP.leftBankZ + 2; // tucks slightly under the banks so there is no gap
   const tex = rippleTexture();
   tex.repeat.set(length / TILE, width / TILE);
+  const normals = detail ? rippleNormalMap() : null;
+  normals?.repeat.set(length / (TILE * 2.5), width / (TILE * 2.5));
 
-  const mesh = new Mesh(new PlaneGeometry(length, width), new MeshLambertMaterial({ map: tex }));
+  const water = new MeshStandardMaterial({ map: tex, roughness: 0.25, metalness: 0.05, normalMap: normals });
+  water.normalScale.set(0.35, 0.35);
+  const mesh = new Mesh(new PlaneGeometry(length, width), water);
+  mesh.receiveShadow = true;
   mesh.rotation.x = -Math.PI / 2;
   mesh.position.set((MAP.west + MAP.east) / 2, MAP.waterY, (MAP.leftBankZ + MAP.rightBankZ) / 2);
 
@@ -67,6 +74,10 @@ export function buildRiver(): River {
       t += dt;
       tex.offset.x = -t * FLOW_SPEED; // flows towards +X
       tex.offset.y = Math.sin(t * 0.7) * 0.03;
+      if (normals) {
+        normals.offset.x = -t * FLOW_SPEED * 1.7;
+        normals.offset.y = t * 0.013;
+      }
     },
   };
 }
