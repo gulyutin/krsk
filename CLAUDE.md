@@ -10,6 +10,7 @@ Browser 3D game for a first-grader. The full specification is in `SPEC.md` (in R
 - Do not touch controls or the camera in landmark sessions.
 - Plan first, then code. One stage = one session, ending with a commit.
 - Everything in git (docs, code comments, test names, commit messages) is in English. In-game text for the player stays in Russian.
+- Places keep their real geographic relation: check `docs/map.md` (real positions from OpenStreetMap and the reserved game coordinates) before placing anything new.
 
 ## Layout notes
 

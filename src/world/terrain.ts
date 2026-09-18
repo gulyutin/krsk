@@ -3,18 +3,30 @@ import { type ColorName, lambert } from '../palette';
 import { type Box, box } from './colliders';
 
 /**
- * Schematic map, not to scale. X runs along the Yenisei (flowing towards +X),
- * the left bank is north (−Z), the right bank is south (+Z). 1 unit ≈ 1 m.
+ * Schematic map of central Krasnoyarsk, see docs/map.md. The Yenisei is
+ * straightened and flows towards +X (in reality east-north-east); the left
+ * bank with the city centre is north (−Z), the right bank is south (+Z).
+ * Directions between places follow the real map, distances are compressed.
  */
 export const MAP = {
-  halfX: 200,
-  north: -150,
-  south: 150,
-  riverHalfWidth: 25,
+  west: -700,
+  east: 520,
+  north: -380,
+  south: 440,
+  /** Water starts at the left bank edge and ends at the right bank edge. */
+  leftBankZ: 0,
+  rightBankZ: 165,
+  /** Otdykha island between the main channel (north) and the narrow channel (south). */
+  island: { x0: -330, x1: 70, z0: 75, z1: 135 },
+  /** Karaulnaya hill with the chapel on top. */
+  hill: { x: -100, z: -290, base: 90, levels: 12, rise: 0.5, shrink: 3 },
   sandWidth: 6,
   waterY: -1.2,
   bankDepth: 4,
 } as const;
+
+/** Height of the top of Karaulnaya hill. */
+export const HILL_TOP = MAP.hill.levels * MAP.hill.rise;
 
 const unit = new BoxGeometry(1, 1, 1);
 
@@ -22,12 +34,7 @@ const unit = new BoxGeometry(1, 1, 1);
  * Solid block: a mesh plus a collider with the same bounds.
  * color = null makes an invisible wall.
  */
-export function solidBox(
-  parent: Group,
-  colliders: Box[],
-  b: Box,
-  color: ColorName | null,
-): Mesh | null {
+export function solidBox(parent: Group, colliders: Box[], b: Box, color: ColorName | null): Mesh | null {
   colliders.push(b);
   if (!color) return null;
   const m = new Mesh(unit, lambert(color));
@@ -47,23 +54,29 @@ export interface Terrain {
 export function buildTerrain(): Terrain {
   const group = new Group();
   const colliders: Box[] = [];
-  const { halfX, north, south, riverHalfWidth: rw, sandWidth: sw, bankDepth: d } = MAP;
+  const { west, east, north, south, leftBankZ: lz, rightBankZ: rz, island: isl, sandWidth: sw, bankDepth: d } = MAP;
 
-  // Banks: grass plus a sand strip by the water
-  solidBox(group, colliders, box(-halfX, -d, north, halfX, 0, -rw - sw), 'grass');
-  solidBox(group, colliders, box(-halfX, -d, -rw - sw, halfX, 0, -rw), 'sand');
-  solidBox(group, colliders, box(-halfX, -d, rw + sw, halfX, 0, south), 'grass');
-  solidBox(group, colliders, box(-halfX, -d, rw, halfX, 0, rw + sw), 'sand');
+  // Left bank (city centre) and right bank, each with a sand strip at the water
+  solidBox(group, colliders, box(west, -d, north, east, 0, lz - sw), 'grass');
+  solidBox(group, colliders, box(west, -d, lz - sw, east, 0, lz), 'sand');
+  solidBox(group, colliders, box(west, -d, rz, east, 0, rz + sw), 'sand');
+  solidBox(group, colliders, box(west, -d, rz + sw, east, 0, south), 'grass');
 
-  // Ground beyond the map edge — visual only, fades into fog
-  const far = 1200;
-  for (const side of [-1, 1]) {
-    const depth = far / 2 - rw;
-    const plane = new Mesh(new PlaneGeometry(far, depth), lambert('grassDark'));
-    plane.rotation.x = -Math.PI / 2;
-    plane.position.set(0, -0.1, side * (rw + depth / 2));
-    group.add(plane);
-  }
+  // Otdykha island: sand shore around a grass middle, tapered ends
+  solidBox(group, colliders, box(isl.x0, -d, isl.z0, isl.x1, 0, isl.z1), 'sand');
+  solidBox(group, colliders, box(isl.x0 + 12, 0, isl.z0 + 5, isl.x1 - 8, 0.3, isl.z1 - 5), 'grass');
+
+  // Ground beyond the playable map — visual only, fades into fog
+  const far = 2400;
+  const cx = (west + east) / 2;
+  const plane = (x0: number, x1: number, z0: number, z1: number) => {
+    const p = new Mesh(new PlaneGeometry(x1 - x0, z1 - z0), lambert('grassDark'));
+    p.rotation.x = -Math.PI / 2;
+    p.position.set((x0 + x1) / 2, -0.1, (z0 + z1) / 2);
+    group.add(p);
+  };
+  plane(cx - far / 2, cx + far / 2, north - far / 2, lz - 1);
+  plane(cx - far / 2, cx + far / 2, rz + 1, south + far / 2);
 
   // Map edge: a low hedge with a tall invisible wall on top
   const hedge = (b: Box) => {
@@ -71,25 +84,23 @@ export function buildTerrain(): Terrain {
     solidBox(group, colliders, { ...b, maxY: 30, noCamera: true }, null);
   };
   for (const [z0, z1] of [
-    [north, -rw],
-    [rw, south],
+    [north, lz],
+    [rz, south],
   ]) {
-    hedge(box(-halfX - 1, 0, z0, -halfX, 1.2, z1));
-    hedge(box(halfX, 0, z0, halfX + 1, 1.2, z1));
+    hedge(box(west - 1, 0, z0, west, 1.2, z1));
+    hedge(box(east, 0, z0, east + 1, 1.2, z1));
   }
-  hedge(box(-halfX - 1, 0, north - 1, halfX + 1, 1.2, north));
-  hedge(box(-halfX - 1, 0, south, halfX + 1, 1.2, south + 1));
+  hedge(box(west - 1, 0, north - 1, east + 1, 1.2, north));
+  hedge(box(west - 1, 0, south, east + 1, 1.2, south + 1));
 
-  // Hill for the Paraskeva Pyatnitsa chapel: stepped terraces of 0.5,
-  // each walkable without jumping.
-  // Top is 24×24 at y = 5 — room for the chapel platform (see landmarks.json).
-  const hill = { x: -70, z: -110, base: 60, levels: 10, rise: 0.5, shrink: 2 };
-  for (let i = 0; i < hill.levels; i++) {
-    const half = hill.base / 2 - i * hill.shrink;
+  // Karaulnaya hill: stepped terraces of 0.5, each walkable without jumping
+  const h = MAP.hill;
+  for (let i = 0; i < h.levels; i++) {
+    const half = h.base / 2 - i * h.shrink;
     solidBox(
       group,
       colliders,
-      box(hill.x - half, 0, hill.z - half, hill.x + half, (i + 1) * hill.rise, hill.z + half),
+      box(h.x - half, 0, h.z - half, h.x + half, (i + 1) * h.rise, h.z + half),
       i % 2 === 0 ? 'grass' : 'grassLight',
     );
   }

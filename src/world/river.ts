@@ -51,14 +51,14 @@ export interface River {
 }
 
 export function buildRiver(): River {
-  const length = 1200;
-  const width = MAP.riverHalfWidth * 2 + 2; // tucks slightly under the banks so there is no gap
+  const length = MAP.east - MAP.west + 1600;
+  const width = MAP.rightBankZ - MAP.leftBankZ + 2; // tucks slightly under the banks so there is no gap
   const tex = rippleTexture();
   tex.repeat.set(length / TILE, width / TILE);
 
   const mesh = new Mesh(new PlaneGeometry(length, width), new MeshLambertMaterial({ map: tex }));
   mesh.rotation.x = -Math.PI / 2;
-  mesh.position.y = MAP.waterY;
+  mesh.position.set((MAP.west + MAP.east) / 2, MAP.waterY, (MAP.leftBankZ + MAP.rightBankZ) / 2);
 
   let t = 0;
   return {

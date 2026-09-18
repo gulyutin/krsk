@@ -209,13 +209,15 @@ function mergeChildren(container: Group): void {
     const material = child.material as Material;
     child.updateMatrix();
 
+    // Transform the vertices first: the box of a rotated shape must come from its
+    // rotated vertices, not from rotating its unrotated box (that inflates octagons)
+    const geometry = child.geometry.clone().applyMatrix4(child.matrix);
     if (child.userData.solid) {
-      const b = new Box3().setFromBufferAttribute(child.geometry.attributes.position as BufferAttribute);
-      b.applyMatrix4(child.matrix);
+      const b = new Box3().setFromBufferAttribute(geometry.attributes.position as BufferAttribute);
       (container.userData.colliders ??= []).push(b);
     }
 
-    add(material, child.geometry.clone().applyMatrix4(child.matrix));
+    add(material, geometry);
     container.remove(child);
   }
 

@@ -54,3 +54,11 @@ describe('collidersOf', () => {
     expect(b.maxY).toBeCloseTo(2);
   });
 });
+
+describe('mergeStatic colliders', () => {
+  it('keeps the collider of a rotated octagon tight', () => {
+    // The chapel platform is an octagon with apothem 9.5: its box must be 19 wide, not ~27
+    const widest = Math.max(...collidersOf(LANDMARKS.chapel()).map((b) => b.maxX - b.minX));
+    expect(widest).toBeLessThan(19.5);
+  });
+});

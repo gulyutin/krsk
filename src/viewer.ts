@@ -127,7 +127,7 @@ function aim(cam: PerspectiveCamera, box: Box3, yaw: number, pitch: number): voi
 
 function worldAngle(name: string): { box: Box3; yaw: number; pitch: number } {
   // The playable map only, not the decorative ground beyond its edge
-  const map = new Box3(new Vector3(-MAP.halfX, -1, MAP.north), new Vector3(MAP.halfX, 10, MAP.south));
+  const map = new Box3(new Vector3(MAP.west, -1, MAP.north), new Vector3(MAP.east, 10, MAP.south));
   if (name === 'top') return { box: map, yaw: 0, pitch: Math.PI / 2 - 0.001 };
   const placement = PLACEMENTS.find((p) => p.id === name);
   if (placement) {

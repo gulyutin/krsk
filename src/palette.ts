@@ -76,9 +76,6 @@ export const PALETTE = {
   viewerBg: 0xdfe6ee,
   viewerGround: 0xc3cad3,
 
-  // Temporary collision test blocks (stage 1)
-  testOrange: 0xf39c32,
-  testPurple: 0x9b6bd6,
 } as const;
 
 export type ColorName = keyof typeof PALETTE;
