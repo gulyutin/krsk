@@ -386,7 +386,7 @@ export function buildCity(occupied: Rect[], treeShadows = true): City {
     [ACROSS, false],
   ] as const) {
     for (const s of list) {
-      ribbon(builders.get('asphalt'), s, along, s.width / 2, 0.07, occupied);
+      ribbon(builders.get('asphalt'), s, along, s.width / 2, 0.1, occupied);
       ribbon(builders.get('squarePaving'), s, along, s.width / 2 + 2, 0.04, occupied);
     }
   }
@@ -429,41 +429,60 @@ export function buildCity(occupied: Rect[], treeShadows = true): City {
   }
 
   // Houses: perimeter blocks between the streets
+  // Blocks are kept roomy: houses only along the two long sides with wide passages
+  // between them, open ends, lawns and some blocks left as squares
   const blocks = (along: Street[], across: Street[], zone: (z: number) => 'old' | 'soviet' | 'panel') => {
     const zs = along.map((s) => s.at).sort((a, b) => a - b);
     const xs = across.map((s) => s.at).sort((a, b) => a - b);
     for (let i = 0; i < zs.length - 1; i++) {
       for (let j = 0; j < xs.length - 1; j++) {
-        const inset = 9;
+        const inset = 12;
         const block: Rect = { x0: xs[j] + inset, x1: xs[j + 1] - inset, z0: zs[i] + inset, z1: zs[i + 1] - inset };
-        if (block.x1 - block.x0 < 14 || block.z1 - block.z0 < 14) continue;
-        fillBlock(block, zone((block.z0 + block.z1) / 2));
+        if (block.x1 - block.x0 < 16 || block.z1 - block.z0 < 16) continue;
+        if (rand() < 0.2) square(block);
+        else fillBlock(block, zone((block.z0 + block.z1) / 2));
       }
+    }
+  };
+
+  /** A green square instead of houses: trees around, benches in the middle. */
+  const square = (block: Rect) => {
+    const cx = (block.x0 + block.x1) / 2;
+    const cz = (block.z0 + block.z1) / 2;
+    for (let k = 0; k < 14; k++) {
+      const x = block.x0 + rand() * (block.x1 - block.x0);
+      const z = block.z0 + rand() * (block.z1 - block.z0);
+      if (Math.hypot(x - cx, z - cz) > 8) addTree(rand() < 0.6 ? 'birch' : 'poplar', x, z);
+    }
+    if (!occupied.some((r) => inside(cx, cz, r))) {
+      benches.push([cx - 2.5, cz, 0], [cx + 2.5, cz, Math.PI]);
+      lamps.push([cx, cz + 3]);
     }
   };
 
   const fillBlock = (block: Rect, kind: 'old' | 'soviet' | 'panel') => {
     const depth = kind === 'old' ? 10 : 12;
-    const sides: { r: Rect; alongX: boolean }[] = [
-      { r: { ...block, z0: block.z1 - depth }, alongX: true },
-      { r: { ...block, z1: block.z0 + depth }, alongX: true },
-      { r: { ...block, x1: block.x0 + depth, z0: block.z0 + depth + 3, z1: block.z1 - depth - 3 }, alongX: false },
-      { r: { ...block, x0: block.x1 - depth, z0: block.z0 + depth + 3, z1: block.z1 - depth - 3 }, alongX: false },
-    ];
-    for (const { r, alongX } of sides) {
-      const len = alongX ? r.x1 - r.x0 : r.z1 - r.z0;
-      if (len < 8) continue;
-      let a = 0;
-      while (a < len - 6) {
-        const size = Math.min(len - a, 12 + rand() * (kind === 'old' ? 14 : 30));
-        const piece: Rect = alongX ? { ...r, x0: r.x0 + a, x1: r.x0 + a + size } : { ...r, z0: r.z0 + a, z1: r.z0 + a + size };
-        house(piece, kind);
-        a += size + (rand() < 0.35 ? 3 + rand() * 5 : 0.4);
+    // Deep blocks keep a building row on both long sides, shallow ones only on one
+    const rows: Rect[] = [{ ...block, z0: block.z1 - depth }];
+    if (block.z1 - block.z0 > depth * 2 + 14) rows.push({ ...block, z1: block.z0 + depth });
+    for (const r of rows) {
+      const len = r.x1 - r.x0;
+      let a = 2 + rand() * 4;
+      while (a < len - 8) {
+        const size = Math.min(len - a, kind === 'old' ? 12 + rand() * 10 : 18 + rand() * 14);
+        const piece: Rect = { ...r, x0: r.x0 + a, x1: r.x0 + a + size };
+        // Some plots stay lawns
+        if (rand() > 0.25) house(piece, kind);
+        a += size + 6 + rand() * 6;
       }
     }
-    // A few trees in the courtyard
-    for (let k = 0; k < 4; k++) {
-      addTree(rand() < 0.5 ? 'birch' : 'poplar', block.x0 + depth + 3 + rand() * Math.max(1, block.x1 - block.x0 - 2 * depth - 6), block.z0 + depth + 3 + rand() * Math.max(1, block.z1 - block.z0 - 2 * depth - 6));
+    // Trees in the courtyard
+    for (let k = 0; k < 5; k++) {
+      addTree(
+        rand() < 0.5 ? 'birch' : 'poplar',
+        block.x0 + rand() * (block.x1 - block.x0),
+        block.z0 + depth + 4 + rand() * Math.max(1, block.z1 - block.z0 - 2 * depth - 8),
+      );
     }
   };
 
