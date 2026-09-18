@@ -136,7 +136,8 @@ function worldAngle(name: string): { box: Box3; yaw: number; pitch: number } {
   if (name === 'top') return { box: map, yaw: 0, pitch: Math.PI / 2 - 0.001 };
   const placement = PLACEMENTS.find((p) => p.id === name);
   if (placement) {
-    const lm = subject.children.find((c) => c.position.equals(new Vector3(...placement.position)));
+    // Each landmark's root group is named after its id
+    const lm = subject.getObjectByName(placement.id);
     if (lm) return { box: boundsOf(lm), yaw: 0.5, pitch: 0.3 };
   }
   return { box: map, yaw: 0.5, pitch: 0.75 };
