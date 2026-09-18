@@ -2,7 +2,7 @@
 // over the main channel, across Otdykha island on a viaduct and over the narrow
 // channel to the right bank. References: refs/bridge/ (see notes.md), docs/map.md.
 //
-// Built along local +X (x = 0 is the left bank edge, x = 165 the right bank edge),
+// Built along local +X (x = 0 is the left bank edge, the right bank edge comes from MAP),
 // so the viewer's front view shows the side elevation; landmarks.json turns it
 // with rotationY = −π/2 to run along world +Z. Upstream is local +Z.
 
@@ -28,14 +28,17 @@ const RIB_Z = 3.8;
 const SPRING_Y = -0.8; // arches spring just above the water
 
 const LEFT_EDGE = 0;
-const ISLAND_START = MAP.island.z0 - MAP.leftBankZ; // 75
-const ISLAND_END = MAP.island.z1 - MAP.leftBankZ; // 135
-const RIGHT_EDGE = MAP.rightBankZ - MAP.leftBankZ; // 165
+const ISLAND_START = MAP.island.z0 - MAP.leftBankZ;
+const ISLAND_END = MAP.island.z1 - MAP.leftBankZ;
+const RIGHT_EDGE = MAP.rightBankZ - MAP.leftBankZ;
 const RAMP_LENGTH = 22;
+/** Where the ramps down to the island leave the viaduct. */
+const SIDE_RAMP_X = ISLAND_START + 8;
+const ISLAND_GROUND = 0.3;
 
 /** Pier positions: the main channel spans shrink away from the city bank. */
-const MAIN_PIERS = [LEFT_EDGE, 26, 47, 63, ISLAND_START];
-const CHANNEL_PIERS = [ISLAND_END, 150, RIGHT_EDGE];
+const MAIN_PIERS = [0, 0.36, 0.63, 0.83, 1].map((f) => LEFT_EDGE + f * (ISLAND_START - LEFT_EDGE));
+const CHANNEL_PIERS = [ISLAND_END, (ISLAND_END + RIGHT_EDGE) / 2, RIGHT_EDGE];
 
 export function build(): Group {
   const root = group('bridge');
@@ -46,9 +49,12 @@ export function build(): Group {
   buildDeck(main, LEFT_EDGE, ISLAND_START);
   buildArches(main, MAIN_PIERS);
 
-  // Viaduct across the island and the short arch bridge over the narrow channel
-  buildDeck(root, ISLAND_START, RIGHT_EDGE);
+  // Viaduct across the island and the short arch bridge over the narrow channel,
+  // with side ramps down to the island on both sides (openings in the railing)
+  const openings = [-1, 1].map((side) => ({ side, x0: SIDE_RAMP_X - 2, x1: SIDE_RAMP_X + 2 }));
+  buildDeck(root, ISLAND_START, RIGHT_EDGE, openings);
   buildViaduct(root);
+  for (const side of [-1, 1] as const) buildSideRamp(root, side);
   buildArches(root, CHANNEL_PIERS);
 
   // Gentle ramps down to both banks
@@ -59,7 +65,13 @@ export function build(): Group {
   return root;
 }
 
-function buildDeck(g: Group, x0: number, x1: number): void {
+interface Opening {
+  side: number;
+  x0: number;
+  x1: number;
+}
+
+function buildDeck(g: Group, x0: number, x1: number, openings: Opening[] = []): void {
   const len = x1 - x0;
   const cx = (x0 + x1) / 2;
   solid(box(g, 'concrete', [len, DECK_THICK, HALF_WIDTH * 2], [cx, DECK_BOTTOM + DECK_THICK / 2, 0]));
@@ -72,10 +84,23 @@ function buildDeck(g: Group, x0: number, x1: number): void {
   const posts: Placement[] = [];
   for (const side of [-1, 1]) {
     const z = side * (HALF_WIDTH - 0.15);
-    rails.push({ pos: [cx, DECK_TOP + 1.0, z], scale: [len, 0.08, 0.1] });
-    rails.push({ pos: [cx, DECK_TOP + 0.45, z], scale: [len, 0.06, 0.06] });
-    for (let x = x0 + 1; x < x1; x += 2) posts.push({ pos: [x, DECK_TOP + 0.5, z], scale: [0.08, 1.0, 0.08] });
-    colliderBox(g, [len, 1.4, 0.3], [cx, DECK_TOP + 0.7, z]);
+    // Split the railing around openings on this side
+    const gaps = openings.filter((o) => o.side === side).sort((a, b) => a.x0 - b.x0);
+    const pieces: [number, number][] = [];
+    let from = x0;
+    for (const gap of gaps) {
+      pieces.push([from, gap.x0]);
+      from = gap.x1;
+    }
+    pieces.push([from, x1]);
+    for (const [a, b] of pieces) {
+      const plen = b - a;
+      const pcx = (a + b) / 2;
+      rails.push({ pos: [pcx, DECK_TOP + 1.0, z], scale: [plen, 0.08, 0.1] });
+      rails.push({ pos: [pcx, DECK_TOP + 0.45, z], scale: [plen, 0.06, 0.06] });
+      for (let x = a + 1; x < b; x += 2) posts.push({ pos: [x, DECK_TOP + 0.5, z], scale: [0.08, 1.0, 0.08] });
+      colliderBox(g, [plen, 1.4, 0.3], [pcx, DECK_TOP + 0.7, z]);
+    }
   }
   instances(g, unitBox, 'iron', rails);
   instances(g, unitBox, 'iron', posts);
@@ -192,4 +217,39 @@ function buildRamp(g: Group, edge: number, dir: 1 | -1): void {
     colliderBox(g, [RAMP_LENGTH, DECK_TOP + 1.4, 0.3], [cx, (DECK_TOP + 1.4) / 2, side * (HALF_WIDTH - 0.15)]);
     box(g, 'iron', [slabLen, 0.08, 0.1], [cx, DECK_TOP / 2 + 1.0, side * (HALF_WIDTH - 0.15)], [0, 0, -dir * slope]);
   }
+}
+
+/**
+ * A ramp from the viaduct down to the island, alongside the bridge: a landing at deck
+ * level next to the opening in the railing, then a slope towards the right bank.
+ */
+function buildSideRamp(g: Group, side: 1 | -1): void {
+  const width = 5;
+  const z = side * (HALF_WIDTH + width / 2);
+  const landing = 4;
+  const x0 = SIDE_RAMP_X - landing / 2;
+  const slopeStart = x0 + landing;
+  const drop = DECK_TOP - ISLAND_GROUND;
+
+  solid(box(g, 'concrete', [landing, DECK_THICK, width], [x0 + landing / 2, DECK_BOTTOM + DECK_THICK / 2, z]));
+  box(g, 'concreteDark', [0.8, DECK_BOTTOM - ISLAND_GROUND, width - 0.6], [x0 + 0.4, (DECK_BOTTOM + ISLAND_GROUND) / 2, z]);
+
+  const steps = 28;
+  const run = RAMP_LENGTH / steps;
+  for (let i = 0; i < steps; i++) {
+    const h = drop * ((steps - i) / steps);
+    colliderBox(g, [run, h, width], [slopeStart + (i + 0.5) * run, ISLAND_GROUND + h / 2, z]);
+  }
+  const slope = Math.atan2(drop, RAMP_LENGTH);
+  const slabLen = Math.hypot(drop, RAMP_LENGTH);
+  const cx = slopeStart + RAMP_LENGTH / 2;
+  box(g, 'asphalt', [slabLen, 0.4, width - 1], [cx, ISLAND_GROUND + drop / 2 - 0.1, z], [0, 0, -slope]);
+  box(g, 'concrete', [slabLen, 0.5, width], [cx, ISLAND_GROUND + drop / 2 - 0.3, z], [0, 0, -slope]);
+
+  // Outer railing along the landing and the slope; the landing's far end is closed too
+  const outer = side * (HALF_WIDTH + width - 0.15);
+  colliderBox(g, [landing + RAMP_LENGTH, DECK_TOP + 1.4, 0.3], [x0 + (landing + RAMP_LENGTH) / 2, (DECK_TOP + 1.4) / 2, outer]);
+  colliderBox(g, [0.3, 1.4, width], [x0, DECK_TOP + 0.7, z]);
+  box(g, 'iron', [landing, 0.08, 0.1], [x0 + landing / 2, DECK_TOP + 1.0, outer]);
+  box(g, 'iron', [slabLen, 0.08, 0.1], [cx, ISLAND_GROUND + drop / 2 + 1.0, outer], [0, 0, -slope]);
 }

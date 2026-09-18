@@ -17,10 +17,10 @@ distances are compressed so that neighbours are 15–40 seconds of walking apart
 |---|---|
 | Playable area | x −700…520, z −380…440 |
 | Left bank edge (water starts) | z = 0 |
-| Main channel | z 0…75 |
-| Otdykha island | x −330…70, z 75…135 |
-| Narrow channel (protoka) | z 135…165 |
-| Right bank edge | z = 165 |
+| Main channel | z 0…70 |
+| Otdykha island | x −440…300, z 70…150 |
+| Narrow channel (protoka) | z 150…175 |
+| Right bank edge | z = 175 |
 | Karaulnaya hill (chapel) | centre (−100, −290), 90×90 base, 12 terraces of 0.5, top 24×24 at y = 6 |
 | Spawn | (30, 0, −12), on the embankment facing the river |
 
@@ -34,7 +34,11 @@ of the Communal bridge (56.00709 N, 92.87207 E) along the river (bearing ≈ 70�
 | Regional Museum | +55 / 18 | (60, −32), facing the river | built |
 | Clock tower + Administration | +153 / 200 | (120, −115), facing the river | built |
 | Paraskeva chapel (Karaulnaya hill) | −95 / 1990 | (−100, −290), y = 6 | built |
-| Communal bridge | from 0 / 0 across Otdykha island to +237 / −1822 | x = 10, straight across: ramp from z −22, deck at y 7 over z 0…165 (arches over the main channel, viaduct over the island, arches over the narrow channel), ramp down to z 187; placed with rotationY = −π/2 | built |
+| Communal bridge | from 0 / 0 across Otdykha island to +237 / −1822 | x = 10, straight across: ramp from z −22, deck at y 7 over z 0…175 (arches over the main channel, viaduct over the island, arches over the narrow channel), ramp down to z 197; placed with rotationY = −π/2 | built |
+| Palace of Sports named after Ivan Yarygin (island) | −272 / −1263 | reserved ≈ (−197, 105) | planned |
+| Central Stadium (island) | +425 / −1179 | reserved ≈ (250, 105), about 50 × 35 | planned |
+| Lighthouse (island, south shore) | +318 / −1564 | reserved ≈ (214, 145) | planned |
+| "Ostrov" centre and "Sportex" (island) | not found in OpenStreetMap | to be placed from the user's photos | planned |
 | Opera and Ballet Theatre | −155 / 242 | reserved ≈ (−140, −120) | planned |
 | Central Park with the Ferris wheel | ≈ −1090 / ≈ 470 | reserved ≈ (−330, −60) | planned |
 | Steamer "Svyatitel Nikolay" at the Strelka (Kacha mouth) | +1470 / ≈ 0 | reserved ≈ (380, −5) | planned |

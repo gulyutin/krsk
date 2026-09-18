@@ -16,9 +16,13 @@ export const MAP = {
   south: 440,
   /** Water starts at the left bank edge and ends at the right bank edge. */
   leftBankZ: 0,
-  rightBankZ: 165,
-  /** Otdykha island between the main channel (north) and the narrow channel (south). */
-  island: { x0: -330, x1: 70, z0: 75, z1: 135 },
+  rightBankZ: 175,
+  /**
+   * Otdykha island between the main channel (north) and the narrow channel (south).
+   * Long enough for the Palace of Sports in the west and the stadium and the
+   * lighthouse east of the bridge.
+   */
+  island: { x0: -440, x1: 300, z0: 70, z1: 150 },
   /** Karaulnaya hill with the chapel on top. */
   hill: { x: -100, z: -290, base: 90, levels: 12, rise: 0.5, shrink: 3 },
   sandWidth: 6,
