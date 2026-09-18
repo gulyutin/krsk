@@ -3,11 +3,13 @@ import type { Box } from '../colliders';
 import placements from '../landmarks.json';
 import { build as chapel } from './chapel';
 import { build as clocktower } from './clocktower';
+import { build as museum } from './museum';
 
 /** Every landmark by id. Add new ones here. */
 export const LANDMARKS: Record<string, () => Group> = {
   chapel,
   clocktower,
+  museum,
 };
 
 export interface LandmarkPlacement {

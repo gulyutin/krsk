@@ -36,15 +36,16 @@ export function buildWorld(): World {
 
 /** TEMPORARY (stage 1): blocks for testing steps, jumps and the camera. Remove in stage 5. */
 function addTestBlocks(root: Group, colliders: Box[]): void {
+  // Kept east of the spawn point, clear of the landmarks
   // Staircase of 0.5 steps going north — walkable without jumping
   for (let i = 0; i < 4; i++) {
-    const z = -50 - i * 2;
-    solidBox(root, colliders, box(-14, 0, z - 2, -10, 0.5 * (i + 1), z), i % 2 ? 'testPurple' : 'testOrange');
+    const z = -42 - i * 2;
+    solidBox(root, colliders, box(20, 0, z - 2, 24, 0.5 * (i + 1), z), i % 2 ? 'testPurple' : 'testOrange');
   }
   // 1.5 block — jump only
-  solidBox(root, colliders, box(8, 0, -54, 12, 1.5, -50), 'testPurple');
+  solidBox(root, colliders, box(28, 0, -48, 32, 1.5, -44), 'testPurple');
   // Wall — the camera must not pass through it
-  solidBox(root, colliders, box(-6, 0, -66, 6, 5, -65), 'testOrange');
+  solidBox(root, colliders, box(34, 0, -56, 44, 5, -55), 'testOrange');
   // Pillar
-  solidBox(root, colliders, box(14, 0, -62, 15, 6, -61), 'testPurple');
+  solidBox(root, colliders, box(48, 0, -52, 49, 6, -51), 'testPurple');
 }

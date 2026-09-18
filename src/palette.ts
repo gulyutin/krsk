@@ -60,6 +60,18 @@ export const PALETTE = {
   squarePaving: 0xb0a39a,
   firGreen: 0x2f5d3a,
 
+  // Regional museum
+  museumWall: 0xb9634f,
+  museumDeep: 0xa8442c,
+  museumDark: 0x7d3324,
+  friezeYellow: 0xe3c76c,
+  friezeGreen: 0x7fae7a,
+  friezeBlue: 0x3f63a8,
+  granite: 0x8d857a,
+  graniteLight: 0xa9a196,
+  atticRoof: 0x7a3b2c,
+  cornice: 0xd8cfa8,
+
   // Landmark viewer
   viewerBg: 0xdfe6ee,
   viewerGround: 0xc3cad3,
