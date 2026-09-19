@@ -1,19 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import { chimeLength, clockHour, fullHourChime } from './chimes';
+import { clockHour } from './chimes';
+import { playKrasnoyarskChimes } from './krasnoyarsk-chimes';
 
-describe('clock chimes', () => {
-  it('plays four quarter changes, then strikes the hour', () => {
-    const strikes = fullHourChime(3);
-    expect(strikes).toHaveLength(16 + 3);
-    const hourBells = strikes.slice(16);
-    expect(new Set(hourBells.map((s) => s.freq)).size).toBe(1);
-    expect(hourBells[0].freq).toBeLessThan(Math.min(...strikes.slice(0, 16).map((s) => s.freq)));
+/** Just enough of an AudioContext to count what gets scheduled. */
+function fakeContext() {
+  const started: number[] = [];
+  const node = () => ({ connect: (n: unknown) => n ?? node() });
+  const ctx = {
+    currentTime: 0,
+    destination: {},
+    createGain: () => ({ ...node(), gain: { value: 1, setValueAtTime() {}, exponentialRampToValueAtTime() {} } }),
+    createOscillator: () => ({ ...node(), type: '', frequency: { value: 0 }, start: (t: number) => started.push(t), stop() {} }),
+  };
+  return { ctx: ctx as unknown as BaseAudioContext, started };
+}
+
+describe('Krasnoyarsk chimes', () => {
+  it('plays the phrase twice, then the hour bell, three partials per note', () => {
+    const { ctx, started } = fakeContext();
+    playKrasnoyarskChimes(ctx, { strikes: 3 });
+    expect(started).toHaveLength((2 * 8 + 3) * 3);
+    for (let i = 1; i < started.length; i++) expect(started[i]).toBeGreaterThanOrEqual(started[i - 1]);
   });
 
-  it('keeps the strikes in order and lasts under a minute even at 12', () => {
-    const strikes = fullHourChime(12);
-    for (let i = 1; i < strikes.length; i++) expect(strikes[i].at).toBeGreaterThan(strikes[i - 1].at);
-    expect(chimeLength(strikes)).toBeLessThan(60);
+  it('lasts about half a minute with twelve strikes', () => {
+    const { ctx } = fakeContext();
+    expect(playKrasnoyarskChimes(ctx, { strikes: 12 })).toBeCloseTo(2 * (16 * 0.43 + 1.2) + 12 * 1.1 + 2.4, 5);
   });
 
   it('counts hours like a clock face', () => {

@@ -19,7 +19,7 @@ Browser 3D game for a first-grader. The full specification is in `SPEC.md` (in R
 - End every `build()` with `mergeStatic(root)`: it bakes the static meshes into one mesh per color (a landmark drops from ~35 draw calls to ~15) and turns `solid()` meshes into colliders first. Keep the building itself in a group named `main`, which is merged separately. Name the building itself `main` (the viewer frames it).
 - The ground is a heightfield (`world/relief.ts`, `heightAt`). Landmarks stand on it at their position; add a flat pad in `relief.ts` under every new building. The player and the camera follow the terrain.
 - The city (`world/city.ts`) avoids landmark footprints automatically and the sites listed in `RESERVED`; when a reserved site gets its landmark, remove it from `RESERVED` only if the landmark itself now occupies it.
-- Things the player can do near a place go in `game/interactions.ts` (one big action button, F on a keyboard). Sounds are synthesised with Web Audio (see `game/chimes.ts`); no copyrighted music or downloaded audio.
+- Things the player can do near a place go in `game/interactions.ts` (one big action button, F on a keyboard). Sounds are synthesised with Web Audio (see `game/krasnoyarsk-chimes.ts`, provided by the user); no audio files in the repo. Use one shared AudioContext.
 - Reference photos in `refs/` are git-ignored (size, copyright); only `refs/<id>/notes.md` is committed.
 
 ## Commands
