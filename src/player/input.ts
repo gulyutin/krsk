@@ -17,7 +17,8 @@ const KEYS_BACK = ['KeyS', 'ArrowDown'];
 const KEYS_LEFT = ['KeyA', 'ArrowLeft'];
 const KEYS_RIGHT = ['KeyD', 'ArrowRight'];
 const KEYS_BIKE = ['KeyE', 'KeyB'];
-const GAME_KEYS = new Set([...KEYS_FORWARD, ...KEYS_BACK, ...KEYS_LEFT, ...KEYS_RIGHT, ...KEYS_BIKE, 'Space']);
+const KEYS_ACTION = ['KeyF'];
+const GAME_KEYS = new Set([...KEYS_FORWARD, ...KEYS_BACK, ...KEYS_LEFT, ...KEYS_RIGHT, ...KEYS_BIKE, ...KEYS_ACTION, 'Space']);
 
 /** Bicycle icon for the touch button: two wheels, frame, seat and handlebar. */
 const BIKE_ICON = `<svg viewBox="0 0 48 32" width="52" height="36" fill="none" stroke="white" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="22" r="8"/><circle cx="38" cy="22" r="8"/><path d="M10 22 L19 10 L31 10 L38 22 M19 10 L24 22 L31 10 M16 7 H23 M31 10 L29 5 H34"/></svg>`;
@@ -43,6 +44,7 @@ export class Input {
   private readonly keys = new Set<string>();
   private jumpQueued = false;
   private bikeQueued = false;
+  private actionQueued = false;
   private lookDX = 0;
   private lookDY = 0;
 
@@ -116,6 +118,13 @@ export class Input {
     return len > 1 ? { x: x / len, y: y / len } : { x, y };
   }
 
+  /** The action key (F) was pressed since the last frame. */
+  consumeAction(): boolean {
+    const a = this.actionQueued;
+    this.actionQueued = false;
+    return a;
+  }
+
   /** Get on or off the bicycle was requested since the last frame. */
   consumeBike(): boolean {
     const b = this.bikeQueued;
@@ -146,6 +155,7 @@ export class Input {
     e.preventDefault();
     if (e.code === 'Space' && !e.repeat) this.jumpQueued = true;
     if (KEYS_BIKE.includes(e.code) && !e.repeat) this.bikeQueued = true;
+    if (KEYS_ACTION.includes(e.code) && !e.repeat) this.actionQueued = true;
     this.keys.add(e.code);
   };
 

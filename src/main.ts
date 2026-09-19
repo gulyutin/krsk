@@ -5,6 +5,8 @@ import { Bike } from './player/bike';
 import { CameraRig } from './player/camera';
 import { PlayerController, turnToward } from './player/controller';
 import { Input } from './player/input';
+import { createInteractions, nearestInteraction } from './game/interactions';
+import { ActionButton } from './ui/action-button';
 import { Hud } from './ui/hud';
 import { detectQuality } from './quality';
 import { createEnvironment, enableShadows, setupRenderer } from './world/lighting';
@@ -50,6 +52,15 @@ rig.yaw = world.spawnYaw;
 rig.snap(controller.pos);
 
 const input = new Input(renderer.domElement);
+
+// Things to do near landmarks, with one big button (or F)
+const interactions = createInteractions();
+let near: ReturnType<typeof nearestInteraction> = null;
+const runAction = () => {
+  if (!near || actionButton.busy) return;
+  actionButton.setBusy(near.item.run(near.distance));
+};
+const actionButton = new ActionButton(runAction);
 const hud = new Hud(debug);
 
 function resize(): void {
@@ -115,6 +126,10 @@ function frame(dt: number): void {
 
   world.update(dt);
   rig.update(dt, { x: p.x, y: visualY, z: p.z });
+  near = nearestInteraction(interactions, p.x, p.z);
+  actionButton.show(near ? near.item.icon : null);
+  if (input.consumeAction()) runAction();
+
   environment.update(focus.set(p.x, visualY, p.z), camera.position);
   renderer.render(scene, camera);
 }
